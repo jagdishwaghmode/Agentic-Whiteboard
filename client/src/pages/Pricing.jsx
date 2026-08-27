@@ -27,12 +27,12 @@ const Pricing = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
-  const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
+  const [billingCycle, setBillingCycle] = useState('monthly');
   const [credits, setCredits] = useState(null);
   const [plans, setPlans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [purchasingPlan, setPurchasingPlan] = useState(null);
-  const [notification, setNotification] = useState(null); // { type: 'success' | 'error', message: '' }
+  const [notification, setNotification] = useState(null);
   const [openFaq, setOpenFaq] = useState(null);
 
   useEffect(() => {
@@ -74,7 +74,6 @@ const Pricing = () => {
       const { order } = await paymentApi.createOrder(planId);
 
       if (order.isMock) {
-        // Dev Mock Razorpay Simulation
         const mockPayment = {
           razorpay_order_id: order.id,
           razorpay_payment_id: `pay_mock_${Date.now()}`,
@@ -85,13 +84,12 @@ const Pricing = () => {
         setCredits(result.credits);
         setNotification({
           type: 'success',
-          message: `🎉 Payment Successful! Added ${result.added || order.plan.credits} credits to your balance.`,
+          message: `Payment Successful! Added ${result.added || order.plan.credits} credits to your balance.`,
         });
         setPurchasingPlan(null);
         return;
       }
 
-      // Live Razorpay Checkout Integration
       await loadRazorpayScript();
 
       const options = {
@@ -114,7 +112,7 @@ const Pricing = () => {
             setCredits(result.credits);
             setNotification({
               type: 'success',
-              message: `🎉 Payment Successful! ${result.added || order.plan.credits} AI credits added to your account.`,
+              message: `Payment Successful! ${result.added || order.plan.credits} AI credits added to your account.`,
             });
           } catch (verifyErr) {
             setNotification({
@@ -159,10 +157,11 @@ const Pricing = () => {
         {/* Notification Banner */}
         {notification && (
           <div
-            className={`mb-8 flex items-center justify-between rounded-xl p-4 text-sm font-medium shadow-sm transition-all ${notification.type === 'success'
-              ? 'border border-green-200 bg-green-50 text-green-800 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-300'
-              : 'border border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300'
-              }`}
+            className={`mb-8 flex items-center justify-between rounded-xl p-4 text-sm font-medium shadow-sm transition-all ${
+              notification.type === 'success'
+                ? 'border border-green-200 bg-green-50 text-green-800 dark:border-green-900/50 dark:bg-green-900/20 dark:text-green-300'
+                : 'border border-red-200 bg-red-50 text-red-800 dark:border-red-900/50 dark:bg-red-900/20 dark:text-red-300'
+            }`}
           >
             <span>{notification.message}</span>
             <button
@@ -177,7 +176,7 @@ const Pricing = () => {
         {/* Hero Header */}
         <div className="text-center">
           <div className="inline-flex items-center gap-2 rounded-full border border-brand-200 bg-brand-50 px-3.5 py-1 text-xs font-semibold text-brand-700 dark:border-brand-900/50 dark:bg-brand-900/30 dark:text-brand-300">
-            <span>✨ Power Your Architectural Workflow</span>
+            <span>Power Your Architectural Workflow</span>
           </div>
 
           <h1 className="mt-4 text-3xl font-extrabold text-gray-900 dark:text-white sm:text-5xl">
@@ -209,8 +208,9 @@ const Pricing = () => {
               className="relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent bg-brand-600 transition-colors duration-200 ease-in-out focus:outline-none"
             >
               <span
-                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${billingCycle === 'yearly' ? 'translate-x-5' : 'translate-x-0'
-                  }`}
+                className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                  billingCycle === 'yearly' ? 'translate-x-5' : 'translate-x-0'
+                }`}
               />
             </button>
             <span className={`flex items-center gap-1.5 text-sm font-medium ${billingCycle === 'yearly' ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>
@@ -247,7 +247,7 @@ const Pricing = () => {
               </div>
 
               <div className="mt-2 text-xs font-semibold text-brand-600 dark:text-brand-400">
-                ⚡ 500 AI Diagram Credits included
+                500 AI Diagram Credits included
               </div>
 
               <ul className="mt-8 space-y-4 text-sm text-gray-600 dark:text-gray-300">
@@ -295,7 +295,7 @@ const Pricing = () => {
 
           {/* Pro Plan - Featured */}
           <div className="relative flex flex-col justify-between rounded-3xl border-2 border-brand-500 bg-white p-8 shadow-xl dark:bg-gray-900">
-            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-brand-600 to-indigo-600 px-4 py-1 text-xs font-bold text-white shadow-md">
+            <div className="absolute -top-4 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-4 py-1 text-xs font-bold text-white shadow-md">
               MOST POPULAR
             </div>
 
@@ -320,7 +320,7 @@ const Pricing = () => {
               </div>
 
               <div className="mt-2 text-xs font-semibold text-brand-600 dark:text-brand-400">
-                ⚡ 1,500 AI Diagram Credits included
+                1,500 AI Diagram Credits included
               </div>
 
               <ul className="mt-8 space-y-4 text-sm text-gray-600 dark:text-gray-300">
@@ -389,7 +389,7 @@ const Pricing = () => {
               </div>
 
               <div className="mt-2 text-xs font-semibold text-purple-600 dark:text-purple-400">
-                ⚡ 5,000 AI Diagram Credits included
+                5,000 AI Diagram Credits included
               </div>
 
               <ul className="mt-8 space-y-4 text-sm text-gray-600 dark:text-gray-300">

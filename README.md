@@ -1,138 +1,227 @@
 # AI Agentic Whiteboard
 
-An intelligent collaborative whiteboard where authenticated users can draw diagrams, add shapes, upload images, save whiteboards, and use an AI assistant to generate and modify diagrams directly on the canvas.
+An intelligent full-stack collaborative whiteboard application that converts natural language prompts into **100% native, individually editable Excalidraw diagrams** using a multi-agent **Google Gemini AI** pipeline and **ELK.js** graph layout engine.
+
+---
+
+## Key Features
+
+- **Natural Language Diagram Generation**: Generate system architectures, microservices flows, flowcharts, databases schemas, sequence diagrams, and mind maps directly onto the canvas.
+- **Native 100% Editable Excalidraw Canvas**: Every generated diagram consists of native Excalidraw elements (rectangles, ellipses, diamonds, bound hand-drawn text, and arrows). You can drag, resize, edit labels, re-color, and group elements freely.
+- **Multi-Agent Gemini Architecture**: Powered by Google Gemini AI with dedicated Intent Analyzer, Diagram Planner, and Quality Reviewer agents.
+- **ELK.js Automatic Layout Engine**: Automatic graph coordinate placement with orthogonal 90-degree elbow edge routing to prevent criss-crossing lines.
+- **User Authentication**: Firebase Authentication (Google Sign-In and Email/Password) with server-side Firebase Admin SDK protection.
+- **Dedicated Pricing & Credit Wallet**: Integrated Razorpay payment engine allowing users to view remaining AI credits and purchase credit packs.
+- **Autosave & Dashboard Workspace**: Debounced autosaving (1.5s) to MongoDB, allowing users to list, search, open, rename, and delete whiteboards.
+
+---
 
 ## Tech Stack
 
 | Layer | Technologies |
 |-------|-------------|
-| Frontend | React, Vite, Tailwind CSS, React Router, Axios, Excalidraw |
-| Backend | Node.js, Express.js, MongoDB, Mongoose |
-| Auth | Firebase Authentication (Google + Email/Password), Firebase Admin SDK |
-| AI | Google Gemini API (gemini-1.5-flash) |
+| **Frontend** | React 18, Vite, Tailwind CSS, React Router DOM, Axios, Excalidraw (`@excalidraw/excalidraw`) |
+| **Backend** | Node.js, Express.js, MongoDB, Mongoose, ELK.js (`elkjs`) |
+| **Authentication** | Firebase Auth, Firebase Admin SDK |
+| **AI Model Engine** | Google Gemini API (`gemini-2.5-flash` / `gemini-1.5-flash`) |
+| **Payments** | Razorpay Checkout SDK |
 
-## Features
+---
 
-- **Authentication** — Google Sign-In, email/password, protected routes, Firebase token verification
-- **Dashboard** — Create, list, open, and delete whiteboards
-- **Canvas** — Full Excalidraw integration with drawing, shapes, text, arrows, zoom, pan, undo/redo
-- **Autosave** — Debounced save (1.5s) with Saving/Saved status indicators
-- **Multi-Agent AI** — Google Gemini Multi-Agent diagram intent, planning, and reviewer pipeline
-- **Layout Engine** — ELK.js graph layout engine (determines node positions & group containers)
-- **Native Elements** — Native 100% editable Excalidraw elements (rectangles, ellipses, diamonds, bound text, arrows)
-- **Image Upload** — PNG, JPG, JPEG, WEBP support via Excalidraw (persisted in board state)
+## System Architecture
+
+```text
+User Natural Language Prompt (AIChat.jsx)
+           ↓
+POST /api/ai/generate-professional-diagram
+           ↓
+geminiService.js (Central Google Gemini Service)
+  ├─ 1. analyzeDiagramIntent()  -> Gemini AI (Intent Prompt)
+  ├─ 2. planDiagram()           -> Gemini AI (Planner Prompt - 0 Hardcoded Coords)
+  ├─ 3. validateSemanticDiagram()-> Structure Validation & ID Integrity Checks
+  └─ 4. reviewDiagram()         -> Gemini AI (Reviewer Prompt)
+           ↓
+Client Graph Layout Engine (diagramLayoutService.js via ELK.js)
+           ↓
+Excalidraw Native Element Generator (semanticDiagramToExcalidraw.js)
+           ↓
+Fully Editable Native Canvas Diagram (WhiteboardCanvas.jsx)
+```
+
+---
+
+## Prerequisites
+
+- **Node.js**: v18.0.0 or higher
+- **MongoDB**: Local MongoDB instance or MongoDB Atlas cluster
+- **Google Gemini API Key**: Free API Key from [Google AI Studio](https://aistudio.google.com/)
+- **Firebase Project**: Firebase console project with Authentication enabled
+- **Razorpay Account** *(Optional)*: Key ID & Secret for live payment testing
+
+---
 
 ## Project Structure
 
 ```
-ai-agentic-whiteboard/
-├── client/          # React frontend
-├── server/          # Express API
-├── package.json     # Root scripts
+Agentic-Whiteboard/
+├── client/                     # React + Vite Frontend
+│   ├── src/
+│   │   ├── components/        # Canvas, AIChat, Navbar, BoardCard
+│   │   ├── context/           # AuthContext
+│   │   ├── pages/             # Dashboard, Whiteboard, Pricing, Login, Register
+│   │   ├── services/          # API Axios clients & ELK Layout Engine
+│   │   └── utils/             # Semantic Diagram -> Excalidraw Element Converter
+│   ├── .env.example
+│   └── package.json
+├── server/                     # Node.js + Express API Backend
+│   ├── agents/                # Gemini Intent, Planner, Reviewer Agents
+│   ├── config/                # Gemini, Firebase, Razorpay, MongoDB configs
+│   ├── controllers/           # AI, Board, Payment, Diagram controllers
+│   ├── middleware/            # Auth & Error Handler middlewares
+│   ├── models/                # Board, CreditAccount, CreditTransaction models
+│   ├── prompts/               # System prompts for Gemini multi-agent pipeline
+│   ├── routes/                # API routes
+│   ├── services/              # Gemini Service, Layout Service, Credit Service
+│   ├── .env.example
+│   └── package.json
+├── .gitignore
+├── package.json               # Root scripts
 └── README.md
 ```
 
-## Prerequisites
+---
 
-- Node.js 18+
-- MongoDB (local or Atlas)
-- Firebase project with Authentication enabled
-- Google Gemini API key (`GEMINI_API_KEY`)
+## Quick Start & Setup
 
-## Setup
+### 1. Clone the repository
 
-### 1. Install dependencies
+```bash
+git clone https://github.com/jagdishwaghmode/Agentic-Whiteboard.git
+cd Agentic-Whiteboard
+```
+
+### 2. Install all dependencies
 
 ```bash
 npm run install:all
 ```
 
-### 2. Configure environment variables
+### 3. Environment Configuration
 
-**Server** — copy `server/.env.example` to `server/.env`:
+#### Backend Environment Setup
+
+Create a `.env` file in the `server/` directory (copy from `server/.env.example`):
 
 ```env
 PORT=5000
 MONGODB_URI=mongodb://localhost:27017/ai-agentic-whiteboard
-FIREBASE_PROJECT_ID=your-project-id
-FIREBASE_CLIENT_EMAIL=your-service-account@your-project.iam.gserviceaccount.com
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+
+# Google Gemini AI Configuration
 GEMINI_API_KEY=your_google_gemini_api_key
-GEMINI_MODEL=gemini-1.5-flash
+GEMINI_MODEL=gemini-2.5-flash
+
+# Firebase Admin SDK Configuration
+FIREBASE_PROJECT_ID=your_firebase_project_id
+FIREBASE_CLIENT_EMAIL=your_service_account@your-project.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_KEY\n-----END PRIVATE KEY-----\n"
+ALLOW_MOCK_AUTH=true
+
+# Razorpay Configuration
+RAZORPAY_KEY_ID=your_razorpay_key_id
+RAZORPAY_KEY_SECRET=your_razorpay_key_secret
 ```
 
-Without `AI_API_KEY`, the server uses a **mock AI provider** with rule-based diagram generation for development.
+#### Frontend Environment Setup
 
-**Client** — copy `client/.env.example` to `client/.env`:
+Create a `.env` file in the `client/` directory (copy from `client/.env.example`):
 
 ```env
 VITE_API_URL=http://localhost:5000/api
-VITE_FIREBASE_API_KEY=...
-VITE_FIREBASE_AUTH_DOMAIN=...
-VITE_FIREBASE_PROJECT_ID=...
-VITE_FIREBASE_STORAGE_BUCKET=...
-VITE_FIREBASE_MESSAGING_SENDER_ID=...
-VITE_FIREBASE_APP_ID=...
+VITE_FIREBASE_API_KEY=your_firebase_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your-app.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your-project-id
+VITE_FIREBASE_STORAGE_BUCKET=your-app.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-### 3. Firebase setup
+---
 
-1. Create a Firebase project at [console.firebase.google.com](https://console.firebase.google.com)
-2. Enable **Email/Password** and **Google** sign-in providers
-3. Add a web app and copy config values to `client/.env`
-4. Generate a service account key (Project Settings → Service Accounts) for the backend
+## Running the Application
 
-### 4. Run the application
+### Start Development Server
+
+Run both frontend and backend concurrently from the root directory:
 
 ```bash
-# Start both client and server
 npm run dev
-
-# Or separately:
-npm run dev:server   # http://localhost:5000
-npm run dev:client   # http://localhost:5173
 ```
 
-## API Endpoints
-
-### Boards (authenticated)
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/boards` | Create a new board |
-| GET | `/api/boards` | List user's boards |
-| GET | `/api/boards/:id` | Get board by ID |
-| PUT | `/api/boards/:id` | Update board (autosave) |
-| DELETE | `/api/boards/:id` | Delete board |
-
-### AI (authenticated)
-
-| Method | Route | Description |
-|--------|-------|-------------|
-| POST | `/api/ai/generate` | Generate diagram from prompt |
-| POST | `/api/ai/modify` | Modify existing diagram |
-
-## AI Architecture
-
-```
-User Prompt → AI Intent Analysis → Diagram Plan → Structured JSON
-    → Layout Engine → Excalidraw Converter → Canvas Update
-```
-
-The AI returns structured diagram data (nodes + connections). A layout engine assigns coordinates, and a converter transforms the result into Excalidraw elements.
-
-## Deployment
+Or start them in separate terminals:
 
 ```bash
-# Build frontend
-npm run build
+# Terminal 1: Backend API (http://localhost:5000)
+npm run dev:server
 
-# Start production server
+# Terminal 2: Frontend App (http://localhost:5173)
+npm run dev:client
+```
+
+---
+
+## Production Build
+
+To build the frontend for production:
+
+```bash
+npm run build
+```
+
+To run the production server:
+
+```bash
 npm start
 ```
 
-Serve the `client/dist` folder statically from Express or deploy frontend and backend separately.
+---
+
+## API Endpoints
+
+### AI Diagram Generation (`/api/ai`)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `POST` | `/api/ai/generate-professional-diagram` | Multi-Agent Gemini pipeline diagram generation |
+| `POST` | `/api/ai/generate` | Single-step Gemini diagram generation |
+
+### Boards Management (`/api/boards`)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/boards` | List user's saved whiteboards |
+| `POST` | `/api/boards` | Create a new whiteboard |
+| `GET` | `/api/boards/:id` | Fetch whiteboard by ID |
+| `PUT` | `/api/boards/:id` | Update whiteboard state (Autosave) |
+| `DELETE` | `/api/boards/:id` | Delete whiteboard |
+
+### Payments & Credits (`/api/payments`)
+
+| Method | Route | Description |
+|--------|-------|-------------|
+| `GET` | `/api/payments/credits` | Get user's remaining AI credit balance |
+| `GET` | `/api/payments/plans` | Fetch available pricing plans |
+| `POST` | `/api/payments/create-order` | Create Razorpay order |
+| `POST` | `/api/payments/verify` | Verify Razorpay HMAC payment signature |
+
+---
+
+## Security
+
+- Sensitive credentials (`GEMINI_API_KEY`, `FIREBASE_PRIVATE_KEY`, `RAZORPAY_KEY_SECRET`) are stored strictly in environment `.env` files.
+- All `.env` and `node_modules` paths are explicitly listed in `.gitignore` to prevent accidental credential commits.
+
+---
 
 ## License
 
-MIT
+This project is licensed under the MIT License.
