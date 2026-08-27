@@ -1,43 +1,46 @@
 /**
  * Converts ELK-positioned semantic diagrams into 100% native, individually editable Excalidraw elements.
- * Generates professional architecture diagrams with clear icon headers, perfectly separated text,
- * pastel layer containers, and crisp 90-degree orthogonal vector lines.
+ * Generates AWS-grade architecture diagrams matching Miro reference design with distinct icon cards,
+ * perfectly centered text labels below icons, pastel layer containers, and crisp 90-degree vector lines.
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-const COMPONENT_ICONS = {
-  client: { icon: '💻', bg: '#f0f9ff', stroke: '#0284c7' },
-  user: { icon: '👤', bg: '#f0f9ff', stroke: '#0284c7' },
-  users: { icon: '👥', bg: '#f0f9ff', stroke: '#0284c7' },
-  device: { icon: '📱', bg: '#f0f9ff', stroke: '#0284c7' },
-  gateway: { icon: '🌐', bg: '#fffbeb', stroke: '#d97706' },
-  vpc: { icon: '🛡️', bg: '#fffbeb', stroke: '#d97706' },
-  service: { icon: '🖥️', bg: '#eff6ff', stroke: '#2563eb' },
-  docker: { icon: '🐳', bg: '#eff6ff', stroke: '#2563eb' },
-  server: { icon: '🖥️', bg: '#eff6ff', stroke: '#2563eb' },
-  database: { icon: '🛢️', bg: '#f0fdf4', stroke: '#16a34a' },
-  cache: { icon: '⚡', bg: '#ecfdf5', stroke: '#059669' },
-  email: { icon: '📧', bg: '#fce7f3', stroke: '#db2777' },
-  slack: { icon: '💬', bg: '#fce7f3', stroke: '#db2777' },
-  queue: { icon: '📦', bg: '#fae8ff', stroke: '#c026d3' },
-  auth: { icon: '🔑', bg: '#f3e8ff', stroke: '#7e22ce' },
-  ai: { icon: '✨', bg: '#ede9fe', stroke: '#6d28d9' },
-  'external-system': { icon: '☁️', bg: '#f8fafc', stroke: '#475569' },
-  decision: { icon: '❖', bg: '#fef9c3', stroke: '#ca8a04' },
-  start: { icon: '▶', bg: '#f0fdf4', stroke: '#16a34a' },
-  end: { icon: '■', bg: '#fef2f2', stroke: '#dc2626' },
-  process: { icon: '⚙️', bg: '#eff6ff', stroke: '#2563eb' },
-  entity: { icon: '📋', bg: '#faf5ff', stroke: '#9333ea' },
-  topic: { icon: '💡', bg: '#fffbeb', stroke: '#d97706' },
+const COMPONENT_PALETTES = {
+  client: { icon: '🌐', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
+  user: { icon: '👤', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
+  users: { icon: '👥', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
+  device: { icon: '📱', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
+  gateway: { icon: '</>', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
+  vpc: { icon: '🛡️', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
+  service: { icon: 'λ', bg: '#fff7ed', stroke: '#ea580c', iconBg: '#ea580c', iconColor: '#ffffff' },
+  lambda: { icon: 'λ', bg: '#fff7ed', stroke: '#ea580c', iconBg: '#ea580c', iconColor: '#ffffff' },
+  docker: { icon: '🐳', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
+  server: { icon: '🖥️', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
+  database: { icon: '🛢️', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
+  s3: { icon: '🛢️', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
+  cache: { icon: '⚡', bg: '#ecfdf5', stroke: '#059669', iconBg: '#059669', iconColor: '#ffffff' },
+  email: { icon: '📧', bg: '#fce7f3', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
+  slack: { icon: '💬', bg: '#fce7f3', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
+  queue: { icon: '📦', bg: '#fae8ff', stroke: '#c026d3', iconBg: '#c026d3', iconColor: '#ffffff' },
+  auth: { icon: '🔒', bg: '#fef2f2', stroke: '#dc2626', iconBg: '#dc2626', iconColor: '#ffffff' },
+  ai: { icon: '✨', bg: '#faf5ff', stroke: '#9333ea', iconBg: '#9333ea', iconColor: '#ffffff' },
+  analytics: { icon: '📊', bg: '#fdf2f8', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
+  'external-system': { icon: '☁️', bg: '#f8fafc', stroke: '#475569', iconBg: '#475569', iconColor: '#ffffff' },
+  decision: { icon: '❖', bg: '#fef9c3', stroke: '#ca8a04', iconBg: '#ca8a04', iconColor: '#ffffff' },
+  start: { icon: '▶', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
+  end: { icon: '■', bg: '#fef2f2', stroke: '#dc2626', iconBg: '#dc2626', iconColor: '#ffffff' },
+  process: { icon: '⚙️', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
+  entity: { icon: '📋', bg: '#faf5ff', stroke: '#9333ea', iconBg: '#9333ea', iconColor: '#ffffff' },
+  topic: { icon: '💡', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
 };
 
 const GROUP_PALETTES = [
-  { bg: '#f8fafc', stroke: '#3b82f6', labelColor: '#1d4ed8' }, // Frontend / Slate Blue
-  { bg: '#fffbeb', stroke: '#f97316', labelColor: '#c2410c' }, // API & Backend / Warm Amber
-  { bg: '#f0fdf4', stroke: '#10b981', labelColor: '#047857' }, // Processing / Mint Green
-  { bg: '#faf5ff', stroke: '#a855f7', labelColor: '#6b21a8' }, // Data / Purple
-  { bg: '#eff6ff', stroke: '#6366f1', labelColor: '#4338ca' }, // Cloud / Indigo
+  { bg: '#fffbeb', stroke: '#f97316', labelColor: '#c2410c' }, // Frontend / Warm Amber
+  { bg: '#fff8f0', stroke: '#ea580c', labelColor: '#9a3412' }, // Backend / Warm Orange
+  { bg: '#f0fdf4', stroke: '#16a34a', labelColor: '#15803d' }, // Region / Mint Green
+  { bg: '#faf5ff', stroke: '#9333ea', labelColor: '#7e22ce' }, // Cloud / Purple
+  { bg: '#f0f9ff', stroke: '#0284c7', labelColor: '#0369a1' }, // Edge / Slate Blue
 ];
 
 const createBaseElement = (type, overrides = {}) => ({
@@ -53,7 +56,7 @@ const createBaseElement = (type, overrides = {}) => ({
   fillStyle: 'solid',
   strokeWidth: 2,
   strokeStyle: 'solid',
-  roughness: 0, // 100% crisp straight vector lines
+  roughness: 0, // 100% crisp vector lines
   opacity: 100,
   groupIds: [],
   frameId: null,
@@ -124,7 +127,7 @@ export function semanticDiagramToExcalidraw(diagram) {
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  // 1. Render Layer Group Containers with Pastel Backgrounds & Clean Dashed Outlines
+  // 1. Render Layer Container Boxes with Pastel Backgrounds & Clean Dashed Outlines
   groups.forEach((grp, idx) => {
     if (!grp.width || !grp.height) return;
 
@@ -169,13 +172,13 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, grp.y + grp.height);
   });
 
-  // 2. Render Component Node Cards (Icon Header + Clear Title Text Below, NO Overlaps!)
+  // 2. Render AWS-Grade Component Nodes (Card + Icon Square Badge + Centered Title Text)
   nodes.forEach((node) => {
     const groupId = generateId();
-    const config = COMPONENT_ICONS[node.type] || COMPONENT_ICONS.service;
+    const config = COMPONENT_PALETTES[node.type] || COMPONENT_PALETTES.service;
     const label = String(node.label || 'Component');
 
-    // Outer Node Container Box
+    // Outer Card Box
     const shapeElement = createBaseElement('rectangle', {
       x: node.x,
       y: node.y,
@@ -189,36 +192,51 @@ export function semanticDiagramToExcalidraw(diagram) {
       groupIds: [groupId],
     });
 
-    // Top Icon Symbol (placed cleanly in top section of node box)
-    const iconElement = createBaseElement('text', {
-      x: node.x + (node.width - 30) / 2,
-      y: node.y + 14,
-      width: 30,
+    // Icon Badge Square (36x36 centered at top of card)
+    const badgeSize = 36;
+    const iconBadge = createBaseElement('rectangle', {
+      x: node.x + (node.width - badgeSize) / 2,
+      y: node.y + 12,
+      width: badgeSize,
+      height: badgeSize,
+      backgroundColor: config.iconBg,
+      strokeColor: config.stroke,
+      strokeWidth: 1.5,
+      roughness: 0,
+      roundness: { type: 3 },
+      groupIds: [groupId],
+    });
+
+    // Icon Symbol Text centered inside icon badge
+    const iconText = createBaseElement('text', {
+      x: node.x + (node.width - 28) / 2,
+      y: node.y + 18,
+      width: 28,
       height: 24,
-      strokeColor: '#0f172a',
+      strokeColor: config.iconColor,
       backgroundColor: 'transparent',
       text: config.icon,
       originalText: config.icon,
-      fontSize: 20,
+      fontSize: 18,
       fontFamily: 2,
       textAlign: 'center',
       verticalAlign: 'middle',
-      baseline: 20,
+      baseline: 18,
       groupIds: [groupId],
       autoResize: true,
     });
 
-    // Component Label (placed cleanly in lower section below icon, ZERO OVERLAP!)
-    let fontSize = 13;
+    // Component Title Text centered horizontally below icon badge (ZERO OVERLAP!)
+    let fontSize = 12.5;
     if (label.length > 28) fontSize = 10.5;
     else if (label.length > 18) fontSize = 11.5;
 
-    const textWidth = Math.max(node.width - 20, 60);
+    const textWidth = Math.max(node.width - 16, 60);
     const textHeight = 36;
 
     const textElement = createBaseElement('text', {
       x: node.x + (node.width - textWidth) / 2,
-      y: node.y + 46,
+      y: node.y + 54,
       width: textWidth,
       height: textHeight,
       strokeColor: '#0f172a',
@@ -230,15 +248,14 @@ export function semanticDiagramToExcalidraw(diagram) {
       textAlign: 'center',
       verticalAlign: 'top',
       baseline: fontSize,
-      containerId: shapeElement.id,
       groupIds: [groupId],
-      lineHeight: 1.25,
+      lineHeight: 1.2,
       autoResize: true,
     });
 
     shapeElement.boundElements = [{ id: textElement.id, type: 'text' }];
 
-    elements.push(shapeElement, iconElement, textElement);
+    elements.push(shapeElement, iconBadge, iconText, textElement);
     nodeMap.set(node.id, { shapeElement, textElement, nodeData: node });
 
     minX = Math.min(minX, node.x);
@@ -247,7 +264,7 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, node.y + node.height);
   });
 
-  // 3. Render Crisp Non-Wavy Orthogonal Vector Arrow Lines & Clean Connection Badges
+  // 3. Render Crisp Non-Wavy Orthogonal Vector Arrow Lines & Connection Badges
   relationships.forEach((rel) => {
     const source = nodeMap.get(rel.from);
     const target = nodeMap.get(rel.to);
@@ -294,7 +311,7 @@ export function semanticDiagramToExcalidraw(diagram) {
       backgroundColor: 'transparent',
       strokeWidth: 2,
       roughness: 0,
-      roundness: null, // Sharp 90-degree corners
+      roundness: null, // Crisp 90-degree corners
       startArrowhead: null,
       endArrowhead: 'arrow',
       points,
