@@ -3,9 +3,15 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import paymentApi from '../services/paymentApi';
 
-const Navbar = ({ title, saveStatus, showBack = false }) => {
+const Navbar = ({ title, saveStatus, showBack = false, onTitleChange }) => {
   const { user, logout } = useAuth();
   const [credits, setCredits] = useState(null);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [currentTitle, setCurrentTitle] = useState(title || '');
+
+  useEffect(() => {
+    setCurrentTitle(title || '');
+  }, [title]);
 
   useEffect(() => {
     if (user) {
@@ -15,6 +21,23 @@ const Navbar = ({ title, saveStatus, showBack = false }) => {
         .catch(() => setCredits(null));
     }
   }, [user]);
+
+  const handleSaveTitle = () => {
+    setIsEditingTitle(false);
+    if (currentTitle.trim() && currentTitle.trim() !== title && onTitleChange) {
+      onTitleChange(currentTitle.trim());
+    } else {
+      setCurrentTitle(title || '');
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSaveTitle();
+    if (e.key === 'Escape') {
+      setCurrentTitle(title || '');
+      setIsEditingTitle(false);
+    }
+  };
 
   const statusColors = {
     saving: 'text-yellow-600 dark:text-yellow-400',
@@ -49,10 +72,33 @@ const Navbar = ({ title, saveStatus, showBack = false }) => {
             Agentic Whiteboard
           </span>
         </Link>
+
+        {/* Editable Title Section */}
         {title && (
-          <span className="hidden truncate text-sm text-gray-500 dark:text-gray-400 md:inline">
-            / {title}
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-gray-400">/</span>
+            {isEditingTitle ? (
+              <input
+                type="text"
+                value={currentTitle}
+                onChange={(e) => setCurrentTitle(e.target.value)}
+                onBlur={handleSaveTitle}
+                onKeyDown={handleKeyDown}
+                autoFocus
+                className="rounded border border-brand-500 bg-white px-2 py-0.5 text-sm font-semibold text-gray-900 outline-none dark:bg-gray-800 dark:text-white"
+              />
+            ) : (
+              <button
+                onClick={() => onTitleChange && setIsEditingTitle(true)}
+                title={onTitleChange ? 'Click to rename project' : ''}
+                className={`truncate max-w-[200px] sm:max-w-xs text-sm font-semibold text-gray-700 transition dark:text-gray-200 ${
+                  onTitleChange ? 'hover:text-brand-600 dark:hover:text-brand-400 cursor-pointer' : ''
+                }`}
+              >
+                {title}
+              </button>
+            )}
+          </div>
         )}
       </div>
 

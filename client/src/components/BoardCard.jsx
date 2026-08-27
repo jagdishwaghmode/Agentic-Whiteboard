@@ -1,6 +1,10 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const BoardCard = ({ board, onDelete, deleting }) => {
+const BoardCard = ({ board, onRename, onDelete, deleting }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(board.title || 'Untitled Whiteboard');
+
   const formattedDate = new Date(board.updatedAt).toLocaleDateString(undefined, {
     month: 'short',
     day: 'numeric',
@@ -8,6 +12,23 @@ const BoardCard = ({ board, onDelete, deleting }) => {
     hour: '2-digit',
     minute: '2-digit',
   });
+
+  const handleSaveRename = () => {
+    setIsEditing(false);
+    if (title.trim() && title.trim() !== board.title) {
+      onRename(board._id, title.trim());
+    } else {
+      setTitle(board.title);
+    }
+  };
+
+  const handleKeyDown = (e) => {
+    if (e.key === 'Enter') handleSaveRename();
+    if (e.key === 'Escape') {
+      setTitle(board.title);
+      setIsEditing(false);
+    }
+  };
 
   return (
     <div className="card group flex flex-col p-5 transition hover:shadow-md">
@@ -27,9 +48,35 @@ const BoardCard = ({ board, onDelete, deleting }) => {
         </svg>
       </div>
 
-      <h3 className="mb-1 truncate font-semibold text-gray-900 dark:text-white">
-        {board.title}
-      </h3>
+      {isEditing ? (
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          onBlur={handleSaveRename}
+          onKeyDown={handleKeyDown}
+          autoFocus
+          className="mb-1 rounded border border-brand-500 bg-white px-2 py-0.5 text-sm font-semibold text-gray-900 outline-none dark:bg-gray-800 dark:text-white"
+        />
+      ) : (
+        <div className="mb-1 flex items-center justify-between gap-2">
+          <h3
+            onClick={() => setIsEditing(true)}
+            title="Click to rename whiteboard"
+            className="truncate font-semibold text-gray-900 transition hover:text-brand-600 dark:text-white dark:hover:text-brand-400 cursor-pointer"
+          >
+            {board.title}
+          </h3>
+          <button
+            onClick={() => setIsEditing(true)}
+            title="Rename Whiteboard"
+            className="hidden text-xs text-gray-400 hover:text-brand-600 group-hover:block dark:hover:text-brand-400"
+          >
+            Rename
+          </button>
+        </div>
+      )}
+
       <p className="mb-4 text-xs text-gray-500 dark:text-gray-400">Updated {formattedDate}</p>
 
       <div className="mt-auto flex gap-2">

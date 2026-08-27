@@ -36,12 +36,23 @@ const Whiteboard = () => {
     fetchBoard();
   }, [boardId, navigate]);
 
+  const handleTitleChange = async (newTitle) => {
+    if (!newTitle || !newTitle.trim()) return;
+    const trimmed = newTitle.trim();
+    setBoard((prev) => (prev ? { ...prev, title: trimmed } : prev));
+
+    try {
+      await boardAPI.update(boardId, { title: trimmed });
+    } catch (err) {
+      console.error('Failed to update title:', err);
+    }
+  };
+
   const handleDiagramGenerated = (diagram) => {
     setAiDiagram({ ...diagram, _timestamp: Date.now() });
   };
 
   const handleDiagramChange = (diagram) => {
-    // Avoid triggering state re-renders if diagram is unchanged
     setCurrentDiagram((prev) => {
       if (JSON.stringify(prev) === JSON.stringify(diagram)) return prev;
       return diagram;
@@ -73,7 +84,12 @@ const Whiteboard = () => {
 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
-      <Navbar title={board.title} saveStatus={saveStatus} showBack />
+      <Navbar
+        title={board.title}
+        saveStatus={saveStatus}
+        showBack
+        onTitleChange={handleTitleChange}
+      />
 
       <div className="flex flex-1 overflow-hidden">
         <Sidebar

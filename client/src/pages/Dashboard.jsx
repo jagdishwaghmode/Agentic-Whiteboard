@@ -12,6 +12,10 @@ const Dashboard = () => {
   const [boards, setBoards] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+
+  // Create Modal State
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [projectTitle, setProjectTitle] = useState('Untitled Whiteboard');
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
 
@@ -31,16 +35,38 @@ const Dashboard = () => {
     }
   };
 
-  const handleCreateBoard = async () => {
+  const handleOpenCreateModal = () => {
+    setProjectTitle('Untitled Whiteboard');
+    setShowCreateModal(true);
+  };
+
+  const handleCreateBoard = async (e) => {
+    if (e) e.preventDefault();
+    const finalTitle = projectTitle.trim() || 'Untitled Whiteboard';
+
     setCreating(true);
     setError('');
 
     try {
-      const response = await boardAPI.create('Untitled Whiteboard');
+      const response = await boardAPI.create(finalTitle);
+      setShowCreateModal(false);
       navigate(`/board/${response.data.board._id}`);
     } catch (err) {
       setError(err.message);
       setCreating(false);
+    }
+  };
+
+  const handleRenameBoard = async (boardId, newTitle) => {
+    if (!newTitle || !newTitle.trim()) return;
+
+    try {
+      await boardAPI.update(boardId, { title: newTitle.trim() });
+      setBoards((prev) =>
+        prev.map((b) => (b._id === boardId ? { ...b, title: newTitle.trim() } : b))
+      );
+    } catch (err) {
+      setError(err.message);
     }
   };
 
@@ -72,8 +98,8 @@ const Dashboard = () => {
               Manage your whiteboards and create new diagrams with AI
             </p>
           </div>
-          <button onClick={handleCreateBoard} disabled={creating} className="btn-primary">
-            {creating ? 'Creating...' : '+ Create New Whiteboard'}
+          <button onClick={handleOpenCreateModal} className="btn-primary">
+            + Create New Whiteboard
           </button>
         </div>
 
@@ -106,7 +132,7 @@ const Dashboard = () => {
             <p className="mt-2 max-w-sm text-sm text-gray-500 dark:text-gray-400">
               Create your first whiteboard to start drawing diagrams and collaborating with AI.
             </p>
-            <button onClick={handleCreateBoard} disabled={creating} className="btn-primary mt-6">
+            <button onClick={handleOpenCreateModal} className="btn-primary mt-6">
               Create Your First Whiteboard
             </button>
           </div>
@@ -120,6 +146,7 @@ const Dashboard = () => {
                 <BoardCard
                   key={board._id}
                   board={board}
+                  onRename={handleRenameBoard}
                   onDelete={handleDeleteBoard}
                   deleting={deletingId === board._id}
                 />
@@ -128,6 +155,56 @@ const Dashboard = () => {
           </>
         )}
       </main>
+
+      {/* Create Whiteboard Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="card w-full max-w-md p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">
+              Create New Project Whiteboard
+            </h3>
+            <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+              Enter a name for your project whiteboard below.
+            </p>
+
+            <form onSubmit={handleCreateBoard} className="mt-5 space-y-4">
+              <div>
+                <label className="mb-1 block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                  Project Name
+                </label>
+                <input
+                  type="text"
+                  value={projectTitle}
+                  onChange={(e) => setProjectTitle(e.target.value)}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="e.g. E-Commerce Microservices Architecture"
+                  autoFocus
+                  required
+                  className="input-field"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={creating}
+                  className="btn-secondary text-xs"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={creating || !projectTitle.trim()}
+                  className="btn-primary text-xs"
+                >
+                  {creating ? 'Creating...' : 'Create Whiteboard'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
