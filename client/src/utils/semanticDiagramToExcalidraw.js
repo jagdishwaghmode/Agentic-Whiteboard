@@ -1,46 +1,45 @@
 /**
  * Converts ELK-positioned semantic diagrams into 100% native, individually editable Excalidraw elements.
- * Generates AWS-grade architecture diagrams matching Miro reference design with distinct icon cards,
- * perfectly centered text labels below icons, pastel layer containers, and crisp 90-degree vector lines.
+ * Renders professional architecture diagrams with perfectly centered icon + label text inside native container boxes.
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
 const COMPONENT_PALETTES = {
-  client: { icon: '🌐', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
-  user: { icon: '👤', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
-  users: { icon: '👥', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
-  device: { icon: '📱', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#0284c7', iconColor: '#ffffff' },
-  gateway: { icon: '</>', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
-  vpc: { icon: '🛡️', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
-  service: { icon: 'λ', bg: '#fff7ed', stroke: '#ea580c', iconBg: '#ea580c', iconColor: '#ffffff' },
-  lambda: { icon: 'λ', bg: '#fff7ed', stroke: '#ea580c', iconBg: '#ea580c', iconColor: '#ffffff' },
-  docker: { icon: '🐳', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
-  server: { icon: '🖥️', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
-  database: { icon: '🛢️', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
-  s3: { icon: '🛢️', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
-  cache: { icon: '⚡', bg: '#ecfdf5', stroke: '#059669', iconBg: '#059669', iconColor: '#ffffff' },
-  email: { icon: '📧', bg: '#fce7f3', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
-  slack: { icon: '💬', bg: '#fce7f3', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
-  queue: { icon: '📦', bg: '#fae8ff', stroke: '#c026d3', iconBg: '#c026d3', iconColor: '#ffffff' },
-  auth: { icon: '🔒', bg: '#fef2f2', stroke: '#dc2626', iconBg: '#dc2626', iconColor: '#ffffff' },
-  ai: { icon: '✨', bg: '#faf5ff', stroke: '#9333ea', iconBg: '#9333ea', iconColor: '#ffffff' },
-  analytics: { icon: '📊', bg: '#fdf2f8', stroke: '#db2777', iconBg: '#db2777', iconColor: '#ffffff' },
-  'external-system': { icon: '☁️', bg: '#f8fafc', stroke: '#475569', iconBg: '#475569', iconColor: '#ffffff' },
-  decision: { icon: '❖', bg: '#fef9c3', stroke: '#ca8a04', iconBg: '#ca8a04', iconColor: '#ffffff' },
-  start: { icon: '▶', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#16a34a', iconColor: '#ffffff' },
-  end: { icon: '■', bg: '#fef2f2', stroke: '#dc2626', iconBg: '#dc2626', iconColor: '#ffffff' },
-  process: { icon: '⚙️', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#2563eb', iconColor: '#ffffff' },
-  entity: { icon: '📋', bg: '#faf5ff', stroke: '#9333ea', iconBg: '#9333ea', iconColor: '#ffffff' },
-  topic: { icon: '💡', bg: '#fffbeb', stroke: '#d97706', iconBg: '#d97706', iconColor: '#ffffff' },
+  client: { icon: '🌐', bg: '#e0f2fe', stroke: '#0284c7' },
+  user: { icon: '👤', bg: '#e0f2fe', stroke: '#0284c7' },
+  users: { icon: '👥', bg: '#e0f2fe', stroke: '#0284c7' },
+  device: { icon: '📱', bg: '#e0f2fe', stroke: '#0284c7' },
+  gateway: { icon: '🔌', bg: '#fef3c7', stroke: '#d97706' },
+  vpc: { icon: '🛡️', bg: '#fef3c7', stroke: '#d97706' },
+  service: { icon: '⚡', bg: '#dbeafe', stroke: '#2563eb' },
+  lambda: { icon: '⚡', bg: '#ffedd5', stroke: '#ea580c' },
+  docker: { icon: '🐳', bg: '#dbeafe', stroke: '#2563eb' },
+  server: { icon: '🖥️', bg: '#dbeafe', stroke: '#2563eb' },
+  database: { icon: '🛢️', bg: '#dcfce7', stroke: '#16a34a' },
+  s3: { icon: '🛢️', bg: '#dcfce7', stroke: '#16a34a' },
+  cache: { icon: '⚡', bg: '#ecfdf5', stroke: '#059669' },
+  email: { icon: '📧', bg: '#fce7f3', stroke: '#db2777' },
+  slack: { icon: '💬', bg: '#fce7f3', stroke: '#db2777' },
+  queue: { icon: '📦', bg: '#fae8ff', stroke: '#c026d3' },
+  auth: { icon: '🔒', bg: '#fee2e2', stroke: '#dc2626' },
+  ai: { icon: '✨', bg: '#f3e8ff', stroke: '#9333ea' },
+  analytics: { icon: '📊', bg: '#fdf2f8', stroke: '#db2777' },
+  'external-system': { icon: '☁️', bg: '#f1f5f9', stroke: '#475569' },
+  decision: { icon: '❖', bg: '#fef9c3', stroke: '#ca8a04' },
+  start: { icon: '▶', bg: '#dcfce7', stroke: '#16a34a' },
+  end: { icon: '■', bg: '#fee2e2', stroke: '#dc2626' },
+  process: { icon: '⚙️', bg: '#dbeafe', stroke: '#2563eb' },
+  entity: { icon: '📋', bg: '#f3e8ff', stroke: '#9333ea' },
+  topic: { icon: '💡', bg: '#fef3c7', stroke: '#d97706' },
 };
 
 const GROUP_PALETTES = [
   { bg: '#fffbeb', stroke: '#f97316', labelColor: '#c2410c' }, // Frontend / Warm Amber
   { bg: '#fff8f0', stroke: '#ea580c', labelColor: '#9a3412' }, // Backend / Warm Orange
-  { bg: '#f0fdf4', stroke: '#16a34a', labelColor: '#15803d' }, // Region / Mint Green
+  { bg: '#f0fdf4', stroke: '#16a34a', labelColor: '#15803d' }, // Data / Mint Green
   { bg: '#faf5ff', stroke: '#9333ea', labelColor: '#7e22ce' }, // Cloud / Purple
-  { bg: '#f0f9ff', stroke: '#0284c7', labelColor: '#0369a1' }, // Edge / Slate Blue
+  { bg: '#f0f9ff', stroke: '#0284c7', labelColor: '#0369a1' }, // Edge / Light Blue
 ];
 
 const createBaseElement = (type, overrides = {}) => ({
@@ -52,7 +51,7 @@ const createBaseElement = (type, overrides = {}) => ({
   height: 0,
   angle: 0,
   strokeColor: '#1e1e1e',
-  backgroundColor: '#eff6ff',
+  backgroundColor: '#dbeafe',
   fillStyle: 'solid',
   strokeWidth: 2,
   strokeStyle: 'solid',
@@ -172,14 +171,20 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, grp.y + grp.height);
   });
 
-  // 2. Render AWS-Grade Component Nodes (Card + Icon Square Badge + Centered Title Text)
+  // 2. Render Native Node Boxes with Perfectly Centered Icon + Label Text (ZERO Overlap!)
   nodes.forEach((node) => {
     const groupId = generateId();
     const config = COMPONENT_PALETTES[node.type] || COMPONENT_PALETTES.service;
-    const label = String(node.label || 'Component');
+    const cleanLabel = String(node.label || 'Component').trim();
 
-    // Outer Card Box
-    const shapeElement = createBaseElement('rectangle', {
+    // Format text string with icon and title: e.g. "⚡  Node.js Express Server"
+    const fullText = `${config.icon}  ${cleanLabel}`;
+
+    const shapeType = node.type === 'database' || node.type === 'cache' ? 'ellipse'
+      : node.type === 'decision' ? 'diamond' : 'rectangle';
+
+    // Outer Shape Box
+    const shapeElement = createBaseElement(shapeType, {
       x: node.x,
       y: node.y,
       width: node.width,
@@ -188,74 +193,43 @@ export function semanticDiagramToExcalidraw(diagram) {
       strokeColor: config.stroke,
       strokeWidth: 2,
       roughness: 0,
-      roundness: { type: 3 },
+      roundness: shapeType === 'rectangle' ? { type: 3 } : null,
       groupIds: [groupId],
     });
 
-    // Icon Badge Square (36x36 centered at top of card)
-    const badgeSize = 36;
-    const iconBadge = createBaseElement('rectangle', {
-      x: node.x + (node.width - badgeSize) / 2,
-      y: node.y + 12,
-      width: badgeSize,
-      height: badgeSize,
-      backgroundColor: config.iconBg,
-      strokeColor: config.stroke,
-      strokeWidth: 1.5,
-      roughness: 0,
-      roundness: { type: 3 },
-      groupIds: [groupId],
-    });
+    // Dynamic Font Size
+    let fontSize = 13.5;
+    if (fullText.length > 32) fontSize = 11;
+    else if (fullText.length > 22) fontSize = 12;
 
-    // Icon Symbol Text centered inside icon badge
-    const iconText = createBaseElement('text', {
-      x: node.x + (node.width - 28) / 2,
-      y: node.y + 18,
-      width: 28,
-      height: 24,
-      strokeColor: config.iconColor,
-      backgroundColor: 'transparent',
-      text: config.icon,
-      originalText: config.icon,
-      fontSize: 18,
-      fontFamily: 2,
-      textAlign: 'center',
-      verticalAlign: 'middle',
-      baseline: 18,
-      groupIds: [groupId],
-      autoResize: true,
-    });
+    const innerPadding = 20;
+    const textWidth = Math.max(node.width - innerPadding, 60);
+    const textHeight = Math.max(node.height - innerPadding, 30);
 
-    // Component Title Text centered horizontally below icon badge (ZERO OVERLAP!)
-    let fontSize = 12.5;
-    if (label.length > 28) fontSize = 10.5;
-    else if (label.length > 18) fontSize = 11.5;
-
-    const textWidth = Math.max(node.width - 16, 60);
-    const textHeight = 36;
-
+    // Native Bound Text Element (Excalidraw automatically centers this BOTH horizontally and vertically!)
     const textElement = createBaseElement('text', {
-      x: node.x + (node.width - textWidth) / 2,
-      y: node.y + 54,
+      x: node.x + innerPadding / 2,
+      y: node.y + innerPadding / 2,
       width: textWidth,
       height: textHeight,
       strokeColor: '#0f172a',
       backgroundColor: 'transparent',
-      text: label,
-      originalText: label,
+      text: fullText,
+      originalText: fullText,
       fontSize,
       fontFamily: 2, // Modern clean sans-serif font
       textAlign: 'center',
-      verticalAlign: 'top',
+      verticalAlign: 'middle',
       baseline: fontSize,
+      containerId: shapeElement.id,
       groupIds: [groupId],
-      lineHeight: 1.2,
+      lineHeight: 1.25,
       autoResize: true,
     });
 
     shapeElement.boundElements = [{ id: textElement.id, type: 'text' }];
 
-    elements.push(shapeElement, iconBadge, iconText, textElement);
+    elements.push(shapeElement, textElement);
     nodeMap.set(node.id, { shapeElement, textElement, nodeData: node });
 
     minX = Math.min(minX, node.x);
