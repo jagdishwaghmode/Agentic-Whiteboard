@@ -5,6 +5,7 @@ import { boardAPI } from '../services/api';
 import Navbar from '../components/Navbar';
 import BoardCard from '../components/BoardCard';
 import Loading from '../components/Loading';
+import CreditWallet from '../components/CreditWallet';
 
 const Dashboard = () => {
   const { user } = useAuth();
@@ -82,6 +83,8 @@ const Dashboard = () => {
             {error}
           </div>
         )}
+
+        <CreditWallet />
 
         {loading ? (
           <Loading message="Loading your whiteboards..." />

@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Whiteboard from './pages/Whiteboard';
+import Pricing from './pages/Pricing';
 import Loading from './components/Loading';
 
 const ProtectedRoute = ({ children }) => {
@@ -58,6 +59,14 @@ const AppRoutes = () => (
       element={
         <ProtectedRoute>
           <Dashboard />
+        </ProtectedRoute>
+      }
+    />
+    <Route
+      path="/pricing"
+      element={
+        <ProtectedRoute>
+          <Pricing />
         </ProtectedRoute>
       }
     />

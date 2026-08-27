@@ -100,14 +100,20 @@ function getDynamicFallbackJSON(systemInstruction, userContent) {
       title: `${titleSubject} Flowchart`, diagramType: requestedType, direction: 'TOP_TO_BOTTOM', groups: [],
       nodes: [
         { id: 'start', label: 'Start', type: 'start', group: null },
-        { id: 'receive', label: 'Receive request', type: 'process', group: null },
-        { id: 'valid', label: 'Request valid?', type: 'decision', group: null },
-        { id: 'complete', label: 'Complete request', type: 'process', group: null },
+        { id: 'discover', label: 'Capture requirements', type: 'process', group: null },
+        { id: 'validate', label: 'Validate input', type: 'process', group: null },
+        { id: 'approved', label: 'Requirements approved?', type: 'decision', group: null },
+        { id: 'prepare', label: 'Prepare project data', type: 'process', group: null },
+        { id: 'execute', label: 'Execute core workflow', type: 'process', group: null },
+        { id: 'verify', label: 'Verify result', type: 'process', group: null },
+        { id: 'retry', label: 'Handle exception or retry', type: 'process', group: null },
+        { id: 'complete', label: 'Publish outcome', type: 'process', group: null },
         { id: 'end', label: 'End', type: 'end', group: null },
       ],
       relationships: [
-        { from: 'start', to: 'receive', label: '', type: 'flow' }, { from: 'receive', to: 'valid', label: '', type: 'flow' },
-        { from: 'valid', to: 'complete', label: 'Yes', type: 'branch' }, { from: 'valid', to: 'end', label: 'No', type: 'branch' }, { from: 'complete', to: 'end', label: '', type: 'flow' },
+        { from: 'start', to: 'discover', label: '', type: 'flow' }, { from: 'discover', to: 'validate', label: '', type: 'flow' }, { from: 'validate', to: 'approved', label: '', type: 'flow' },
+        { from: 'approved', to: 'prepare', label: 'Yes', type: 'branch' }, { from: 'approved', to: 'discover', label: 'No — revise', type: 'branch' },
+        { from: 'prepare', to: 'execute', label: '', type: 'flow' }, { from: 'execute', to: 'verify', label: '', type: 'flow' }, { from: 'verify', to: 'retry', label: 'Failure', type: 'branch' }, { from: 'retry', to: 'execute', label: 'Retry', type: 'branch' }, { from: 'verify', to: 'complete', label: 'Success', type: 'branch' }, { from: 'complete', to: 'end', label: '', type: 'flow' },
       ],
     };
   }
@@ -233,7 +239,10 @@ export async function analyzeDiagramIntent(prompt) {
 }
 
 export async function planDiagram(prompt, intent) {
-  const userContent = `${prompt}\n\nIntent Metadata: ${JSON.stringify(intent)}`;
+  const flowDirective = ['flowchart', 'workflow', 'process-flow'].includes(intent?.diagramType)
+    ? '\n\nFLOWCHART DIRECTIVE: derive 8-14 high-level stages from the named project or process. Do not return a 3-5 node generic Start/Process/End chain. Use meaningful project-specific labels with one readable vertical primary path and horizontal side branches for parallel subprocesses and alternate outcomes.'
+    : '';
+  const userContent = `${prompt}${flowDirective}\n\nIntent Metadata: ${JSON.stringify(intent)}`;
   return callGeminiJSON(PLANNER_SYSTEM_PROMPT, userContent);
 }
 

@@ -18,6 +18,8 @@ const SHAPE_MAP = {
   process: { shape: 'rectangle', bg: '#e7f5ff', stroke: '#1c7ed6' },
   entity: { shape: 'rectangle', bg: '#f3d9fa', stroke: '#9c36b5' },
   topic: { shape: 'ellipse', bg: '#fff3bf', stroke: '#e67700' },
+  input: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
+  output: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
   queue: { shape: 'rectangle', bg: '#eebefa', stroke: '#ae3ec9' },
 };
 
@@ -236,7 +238,7 @@ export function semanticDiagramToExcalidraw(diagram) {
         focus: 0,
         gap: 4,
       },
-      roundness: { type: 2 },
+      roundness: null,
     });
 
     source.shapeElement.boundElements.push({ id: arrowElement.id, type: 'arrow' });
@@ -276,15 +278,15 @@ export function semanticDiagramToExcalidraw(diagram) {
   const boundingBox =
     minX !== Infinity
       ? {
-          minX,
-          minY,
-          maxX,
-          maxY,
-          width: maxX - minX,
-          height: maxY - minY,
-          centerX: minX + (maxX - minX) / 2,
-          centerY: minY + (maxY - minY) / 2,
-        }
+        minX,
+        minY,
+        maxX,
+        maxY,
+        width: maxX - minX,
+        height: maxY - minY,
+        centerX: minX + (maxX - minX) / 2,
+        centerY: minY + (maxY - minY) / 2,
+      }
       : null;
 
   return { elements, boundingBox };

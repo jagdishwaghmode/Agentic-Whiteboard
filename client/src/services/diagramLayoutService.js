@@ -3,7 +3,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 const elk = new ELK();
 
 /**
- * Uses ELK.js to calculate professional graph layout (coordinates, node spacing, and group containers)
+ * Uses ELK.js to calculate professional graph layout with orthogonal edge routing,
+ * generous component spacing, and layer group containers.
  */
 export async function layoutSemanticDiagram(semanticDiagram) {
   if (!semanticDiagram || !Array.isArray(semanticDiagram.nodes)) {
@@ -18,7 +19,8 @@ export async function layoutSemanticDiagram(semanticDiagram) {
     relationships = [],
   } = semanticDiagram;
 
-  const elkDirection = direction === 'LEFT_TO_RIGHT' ? 'RIGHT' : 'DOWN';
+  const isFlowDiagram = ['flowchart', 'workflow', 'process-flow'].includes(semanticDiagram.diagramType);
+  const elkDirection = isFlowDiagram ? 'DOWN' : direction === 'LEFT_TO_RIGHT' ? 'RIGHT' : 'DOWN';
 
   const groupMap = new Map();
   groups.forEach((g) => {
@@ -31,10 +33,10 @@ export async function layoutSemanticDiagram(semanticDiagram) {
   });
 
   const nodeDimension = (type) => {
-    if (type === 'client' || type === 'gateway') return { width: 190, height: 80 };
-    if (type === 'database' || type === 'cache') return { width: 180, height: 80 };
-    if (type === 'diamond' || type === 'decision') return { width: 190, height: 90 };
-    return { width: 200, height: 80 };
+    if (type === 'client' || type === 'gateway') return { width: 230, height: 95 };
+    if (type === 'database' || type === 'cache') return { width: 220, height: 95 };
+    if (type === 'diamond' || type === 'decision') return { width: 230, height: 105 };
+    return { width: 230, height: 95 };
   };
 
   const rootChildren = [];
@@ -66,8 +68,10 @@ export async function layoutSemanticDiagram(semanticDiagram) {
         layoutOptions: {
           'elk.algorithm': 'layered',
           'elk.direction': elkDirection,
-          'elk.spacing.nodeNode': '60',
-          'elk.padding': '[top=50,left=30,bottom=30,right=30]',
+          'elk.edgeRouting': 'ORTHOGONAL',
+          'elk.spacing.nodeNode': '110',
+          'elk.spacing.edgeNode': '65',
+          'elk.padding': '[top=75,left=55,bottom=55,right=55]',
         },
       });
     }
@@ -86,10 +90,13 @@ export async function layoutSemanticDiagram(semanticDiagram) {
     layoutOptions: {
       'elk.algorithm': 'layered',
       'elk.direction': elkDirection,
-      'elk.spacing.nodeNode': '80',
-      'elk.layered.spacing.nodeNodeBetweenLayers': '120',
-      'elk.layered.nodePlacement.strategy': 'SIMPLE',
-      'elk.padding': '[top=50,left=50,bottom=50,right=50]',
+      'elk.edgeRouting': 'ORTHOGONAL',
+      'elk.spacing.nodeNode': isFlowDiagram ? '120' : '140',
+      'elk.spacing.edgeNode': '75',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '250',
+      'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
+      'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
+      'elk.padding': '[top=60,left=60,bottom=60,right=60]',
     },
     children: rootChildren,
     edges: elkEdges,
@@ -107,6 +114,7 @@ export async function layoutSemanticDiagram(semanticDiagram) {
 function processElkResult(layoutResult, semanticDiagram, groupMap) {
   const nodesWithCoords = [];
   const groupsWithBounds = [];
+  const edgePointsMap = new Map();
 
   function processChildren(children, parentX = 0, parentY = 0) {
     if (!Array.isArray(children)) return;
@@ -120,8 +128,8 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
           ...child.nodeData,
           x: absX,
           y: absY,
-          width: child.width || 180,
-          height: child.height || 80,
+          width: child.width || 200,
+          height: child.height || 85,
         });
       } else if (groupMap.has(child.id)) {
         const grp = groupMap.get(child.id);
@@ -144,22 +152,49 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
 
   processChildren(layoutResult.children);
 
+  // Process ELK calculated edge sections
+  if (Array.isArray(layoutResult.edges)) {
+    layoutResult.edges.forEach((edge) => {
+      if (Array.isArray(edge.sections) && edge.sections.length > 0) {
+        const sec = edge.sections[0];
+        const points = [];
+        if (sec.startPoint) points.push({ x: sec.startPoint.x, y: sec.startPoint.y });
+        if (Array.isArray(sec.bendPoints)) {
+          sec.bendPoints.forEach((bp) => points.push({ x: bp.x, y: bp.y }));
+        }
+        if (sec.endPoint) points.push({ x: sec.endPoint.x, y: sec.endPoint.y });
+
+        if (edge.relData) {
+          edgePointsMap.set(edge.id, points);
+        }
+      }
+    });
+  }
+
+  const relationshipsWithBendPoints = (semanticDiagram.relationships || []).map((rel, idx) => {
+    const edgeId = `e_${rel.from}_${rel.to}_${idx}`;
+    return {
+      ...rel,
+      bendPoints: edgePointsMap.get(edgeId) || null,
+    };
+  });
+
   return {
     title: semanticDiagram.title,
     direction: semanticDiagram.direction,
     groups: groupsWithBounds,
     nodes: nodesWithCoords,
-    relationships: semanticDiagram.relationships || [],
+    relationships: relationshipsWithBendPoints,
   };
 }
 
 function fallbackGridLayout(semanticDiagram) {
   const nodes = (semanticDiagram.nodes || []).map((n, i) => ({
     ...n,
-    x: 100 + (i % 3) * 260,
-    y: 200 + Math.floor(i / 3) * 180,
-    width: 200,
-    height: 80,
+    x: 100 + (i % 3) * 280,
+    y: 200 + Math.floor(i / 3) * 200,
+    width: 220,
+    height: 90,
   }));
 
   return {

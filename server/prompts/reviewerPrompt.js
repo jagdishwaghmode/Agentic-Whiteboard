@@ -4,6 +4,8 @@ First verify diagramType matches the user's request and supplied intent. This is
 
 Review type-specific readability:
 - Flowcharts/workflows need start/end boundaries, processes, decisions, and labelled branch paths where applicable.
+- For flowchart/workflow requests, reject architecture-shaped output. Ensure one start and end, ordered process nodes, decision diamonds only for actual decisions, and no client/gateway/database layer groups unless explicitly requested.
+- For flowcharts, verify the main path is vertically readable, branches occupy adjacent horizontal columns, and any loop returns around the outside of the diagram. Reject a single straight chain when the request describes conditional or parallel behavior.
 - Sequence diagrams need participants and message relationships in order.
 - ER/database diagrams need entities and meaningful relationship/cardinality labels.
 - Architectures need only relevant components and real boundaries/layers.

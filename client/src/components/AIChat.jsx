@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { generateProfessionalDiagram } from '../services/professionalDiagramApi';
 import Loading from './Loading';
+import paymentApi from '../services/paymentApi';
 
 const EXAMPLE_PROMPTS = [
   'Create a high-level architecture diagram for Netflix.',
@@ -22,11 +23,19 @@ const AIChat = ({ onDiagramGenerated, currentDiagram }) => {
   const [loading, setLoading] = useState(false);
   const [loadingStep, setLoadingStep] = useState('Understanding your diagram request...');
   const [error, setError] = useState('');
+  const [credits, setCredits] = useState(null);
+  const [plans, setPlans] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  useEffect(() => {
+    Promise.all([paymentApi.getCredits(), paymentApi.getPlans()])
+      .then(([creditResponse, planResponse]) => { setCredits(creditResponse.credits); setPlans(planResponse.plans || []); })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = async (promptText) => {
     const prompt = promptText || input.trim();
@@ -50,6 +59,7 @@ const AIChat = ({ onDiagramGenerated, currentDiagram }) => {
       setLoadingStep('Creating professional editable layout...');
       
       onDiagramGenerated({ professionalDiagram: response.diagram, intent: response.intent });
+      if (typeof response.credits === 'number') setCredits(response.credits);
 
       const title = response.diagram?.title || 'Diagram';
       const nodeCount = response.diagram?.nodes?.length || 0;
@@ -72,6 +82,19 @@ const AIChat = ({ onDiagramGenerated, currentDiagram }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const buyCredits = async (plan) => {
+    try {
+      const orderResponse = await paymentApi.createOrder(plan.id);
+      const script = await new Promise((resolve, reject) => {
+        if (window.Razorpay) return resolve();
+        const tag = document.createElement('script'); tag.src = 'https://checkout.razorpay.com/v1/checkout.js'; tag.onload = resolve; tag.onerror = reject; document.body.appendChild(tag);
+      });
+      void script;
+      const checkout = new window.Razorpay({ key: orderResponse.order.keyId, amount: orderResponse.order.amount, currency: 'INR', name: 'AI Whiteboard', description: `${plan.credits} credits`, order_id: orderResponse.order.id, handler: async (payment) => { const result = await paymentApi.verifyPayment(plan.id, payment); if (typeof result.credits === 'number') setCredits(result.credits); } });
+      checkout.open();
+    } catch (err) { setError(err.message || 'Unable to start payment.'); }
   };
 
   return (
@@ -102,6 +125,10 @@ const AIChat = ({ onDiagramGenerated, currentDiagram }) => {
       </div>
 
       <div className="border-t border-gray-200 p-3 dark:border-gray-700">
+        <div className="mb-3 flex items-center justify-between text-xs">
+          <span className="font-medium">Credits: {credits ?? '…'} (50 per diagram)</span>
+          <div className="flex gap-1">{plans.map((plan) => <button key={plan.id} type="button" onClick={() => buyCredits(plan)} className="rounded border px-2 py-1 hover:bg-brand-50">₹{plan.rupees} / {plan.credits}</button>)}</div>
+        </div>
         <div className="mb-3 flex flex-wrap gap-1.5">
           {EXAMPLE_PROMPTS.slice(0, 3).map((prompt) => (
             <button

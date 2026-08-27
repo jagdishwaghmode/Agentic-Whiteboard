@@ -1,4 +1,5 @@
 import { generateProfessionalDiagramPipeline } from '../services/aiOrchestratorService.js';
+import { reserveDiagramCredits, refundDiagramCredits } from '../services/creditService.js';
 
 export const generateProfessionalDiagram = async (req, res, next) => {
   console.log("requested at professional")
@@ -12,25 +13,19 @@ export const generateProfessionalDiagram = async (req, res, next) => {
       });
     }
 
-    if (prompt.trim().length > 1000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Prompt is too long (maximum 1000 characters).',
-      });
+    const account = await reserveDiagramCredits(req.user);
+    try {
+      const { intent, diagram } = await generateProfessionalDiagramPipeline(prompt.trim());
+      return res.json({ success: true, intent, diagram, credits: account.credits });
+    } catch (generationError) {
+      await refundDiagramCredits(req.user, `generation_refund_${Date.now()}`);
+      throw generationError;
     }
-
-    const { intent, diagram } = await generateProfessionalDiagramPipeline(prompt.trim());
-    // console.log(intent, diagram);
-    res.json({
-      success: true,
-      intent,
-      diagram,
-    });
     // console.log("requested at professional"2)
   }
   catch (error) {
     const message = error.message || 'Unable to generate diagram at this time.';
-    res.status(500).json({
+    res.status(error.statusCode || 500).json({
       success: false,
       message,
     });

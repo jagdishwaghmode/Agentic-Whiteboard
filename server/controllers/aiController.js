@@ -65,10 +65,6 @@ export const generateDiagramWithKroki = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Prompt is required' });
     }
 
-    if (prompt.trim().length > 1000) {
-      return res.status(400).json({ success: false, message: 'Prompt is too long (maximum 1000 characters)' });
-    }
-
     const rawMermaid = await generateMermaidCode(prompt.trim());
     const mermaidCode = extractMermaidCode(rawMermaid);
     const svg = await generateMermaidSvg(mermaidCode);

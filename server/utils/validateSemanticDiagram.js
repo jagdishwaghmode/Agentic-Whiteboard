@@ -41,7 +41,9 @@ export function validateSemanticDiagram(data) {
     nodeIds.add(id);
 
     const label = n.label ? String(n.label).trim() : id;
-    const type = n.type || 'service';
+    const type = n.type || ({
+      rectangle: 'process', ellipse: 'start', diamond: 'decision',
+    }[n.shape] || 'service');
     const group = n.group && groupIds.has(String(n.group).trim()) ? String(n.group).trim() : null;
 
     nodes.push({

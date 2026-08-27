@@ -14,13 +14,18 @@ export const protect = async (req, res, next) => {
     const token = authHeader.split(' ')[1];
     const admin = getFirebaseAdmin();
 
-    if (!admin || token.startsWith('mock-token')) {
+    const mockAuthAllowed = process.env.NODE_ENV !== 'production' || process.env.ALLOW_MOCK_AUTH === 'true';
+    if (token.startsWith('mock-token') && mockAuthAllowed) {
       req.user = {
         uid: 'mock-user-123',
         email: 'dev@example.com',
         name: 'Demo User',
       };
       return next();
+    }
+
+    if (!admin) {
+      return res.status(503).json({ success: false, message: 'Authentication service is not configured.' });
     }
 
     const decoded = await admin.auth().verifyIdToken(token);

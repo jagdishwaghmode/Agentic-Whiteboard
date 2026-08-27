@@ -53,6 +53,13 @@ const Navbar = ({ title, saveStatus, showBack = false }) => {
 
         {user && (
           <div className="flex items-center gap-3">
+            <Link
+              to="/pricing"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-brand-200 bg-brand-50 px-3 py-1.5 text-xs font-semibold text-brand-700 transition hover:bg-brand-100 dark:border-brand-900/50 dark:bg-brand-900/30 dark:text-brand-300 dark:hover:bg-brand-900/50"
+            >
+              <span>⚡ Pricing & Credits</span>
+            </Link>
+
             <div className="hidden text-right sm:block">
               <p className="text-sm font-medium text-gray-900 dark:text-white">
                 {user.displayName || user.email?.split('@')[0]}

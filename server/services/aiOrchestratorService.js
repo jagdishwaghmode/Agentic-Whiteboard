@@ -27,6 +27,15 @@ export async function generateProfessionalDiagramPipeline(prompt) {
     reviewedDiagram = validatedPlanned;
   }
 
+  // The intent classifier is authoritative. A reviewer must not silently turn
+  // a requested flowchart/sequence/ER diagram into an architecture diagram.
+  if (intent?.diagramType) {
+    reviewedDiagram.diagramType = intent.diagramType;
+    if (intent.direction === 'LEFT_TO_RIGHT' || intent.direction === 'TOP_TO_BOTTOM') {
+      reviewedDiagram.direction = intent.direction;
+    }
+  }
+
   return {
     intent,
     diagram: reviewedDiagram,

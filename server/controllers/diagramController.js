@@ -12,13 +12,6 @@ export const generateEditableDiagramController = async (req, res, next) => {
       });
     }
 
-    if (prompt.trim().length > 1000) {
-      return res.status(400).json({
-        success: false,
-        message: 'Prompt is too long (maximum 1000 characters).',
-      });
-    }
-
     const diagram = await generateEditableDiagramService(prompt.trim());
 
     res.json({
