@@ -3,8 +3,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 const elk = new ELK();
 
 /**
- * Uses ELK.js to calculate professional graph layout with orthogonal edge routing,
- * generous component spacing, and layer group containers.
+ * Calculates graph layout with global ELK orthogonal edge routing,
+ * generous component spacing, and dynamic group bounding boxes.
  */
 export async function layoutSemanticDiagram(semanticDiagram) {
   if (!semanticDiagram || !Array.isArray(semanticDiagram.nodes)) {
@@ -22,59 +22,23 @@ export async function layoutSemanticDiagram(semanticDiagram) {
   const isFlowDiagram = ['flowchart', 'workflow', 'process-flow'].includes(semanticDiagram.diagramType);
   const elkDirection = isFlowDiagram ? 'DOWN' : direction === 'LEFT_TO_RIGHT' ? 'RIGHT' : 'DOWN';
 
-  const groupMap = new Map();
-  groups.forEach((g) => {
-    groupMap.set(g.id, {
-      id: g.id,
-      label: g.label,
-      description: g.description,
-      children: [],
-    });
-  });
-
   const nodeDimension = (type) => {
-    if (type === 'client' || type === 'gateway') return { width: 230, height: 95 };
-    if (type === 'database' || type === 'cache') return { width: 220, height: 95 };
-    if (type === 'diamond' || type === 'decision') return { width: 230, height: 105 };
-    return { width: 230, height: 95 };
+    if (type === 'client' || type === 'gateway') return { width: 240, height: 95 };
+    if (type === 'database' || type === 'cache') return { width: 230, height: 95 };
+    if (type === 'diamond' || type === 'decision') return { width: 240, height: 105 };
+    return { width: 240, height: 95 };
   };
 
-  const rootChildren = [];
-
-  nodes.forEach((node) => {
+  // Pass nodes directly to ELK at root level for global coordinate assignment
+  const rootChildren = nodes.map((node) => {
     const dims = nodeDimension(node.type);
-    const elkNode = {
+    return {
       id: node.id,
       width: dims.width,
       height: dims.height,
       labels: [{ text: node.label }],
       nodeData: node,
     };
-
-    if (node.group && groupMap.has(node.group)) {
-      groupMap.get(node.group).children.push(elkNode);
-    } else {
-      rootChildren.push(elkNode);
-    }
-  });
-
-  // Create compound ELK nodes for layer groups
-  groupMap.forEach((grp) => {
-    if (grp.children.length > 0) {
-      rootChildren.push({
-        id: grp.id,
-        labels: [{ text: grp.label }],
-        children: grp.children,
-        layoutOptions: {
-          'elk.algorithm': 'layered',
-          'elk.direction': elkDirection,
-          'elk.edgeRouting': 'ORTHOGONAL',
-          'elk.spacing.nodeNode': '110',
-          'elk.spacing.edgeNode': '65',
-          'elk.padding': '[top=75,left=55,bottom=55,right=55]',
-        },
-      });
-    }
   });
 
   const elkEdges = relationships.map((rel, index) => ({
@@ -91,12 +55,12 @@ export async function layoutSemanticDiagram(semanticDiagram) {
       'elk.algorithm': 'layered',
       'elk.direction': elkDirection,
       'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.spacing.nodeNode': isFlowDiagram ? '120' : '140',
-      'elk.spacing.edgeNode': '75',
-      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '250',
+      'elk.spacing.nodeNode': isFlowDiagram ? '130' : '150',
+      'elk.spacing.edgeNode': '85',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '200' : '260',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-      'elk.padding': '[top=60,left=60,bottom=60,right=60]',
+      'elk.padding': '[top=80,left=80,bottom=80,right=80]',
     },
     children: rootChildren,
     edges: elkEdges,
@@ -104,55 +68,74 @@ export async function layoutSemanticDiagram(semanticDiagram) {
 
   try {
     const layoutResult = await elk.layout(graph);
-    return processElkResult(layoutResult, semanticDiagram, groupMap);
+    return processElkResult(layoutResult, semanticDiagram, groups);
   } catch (err) {
     console.warn('ELK layout failed, falling back to grid layout:', err.message);
     return fallbackGridLayout(semanticDiagram);
   }
 }
 
-function processElkResult(layoutResult, semanticDiagram, groupMap) {
+function processElkResult(layoutResult, semanticDiagram, originalGroups) {
   const nodesWithCoords = [];
-  const groupsWithBounds = [];
   const edgePointsMap = new Map();
 
-  function processChildren(children, parentX = 0, parentY = 0) {
-    if (!Array.isArray(children)) return;
-
-    children.forEach((child) => {
-      const absX = parentX + (child.x || 0);
-      const absY = parentY + (child.y || 0);
-
+  if (Array.isArray(layoutResult.children)) {
+    layoutResult.children.forEach((child) => {
       if (child.nodeData) {
         nodesWithCoords.push({
           ...child.nodeData,
-          x: absX,
-          y: absY,
-          width: child.width || 200,
-          height: child.height || 85,
+          x: child.x || 0,
+          y: child.y || 0,
+          width: child.width || 240,
+          height: child.height || 95,
         });
-      } else if (groupMap.has(child.id)) {
-        const grp = groupMap.get(child.id);
-        groupsWithBounds.push({
-          id: grp.id,
-          label: grp.label,
-          description: grp.description,
-          x: absX,
-          y: absY,
-          width: child.width || 400,
-          height: child.height || 250,
-        });
-
-        if (child.children) {
-          processChildren(child.children, absX, absY);
-        }
       }
     });
   }
 
-  processChildren(layoutResult.children);
+  // Calculate dynamic bounding boxes for layer group containers
+  const nodeMapByGroup = new Map();
+  nodesWithCoords.forEach((node) => {
+    if (node.group) {
+      if (!nodeMapByGroup.has(node.group)) nodeMapByGroup.set(node.group, []);
+      nodeMapByGroup.get(node.group).push(node);
+    }
+  });
 
-  // Process ELK calculated edge sections
+  const groupsWithBounds = (originalGroups || []).map((grp) => {
+    const memberNodes = nodeMapByGroup.get(grp.id) || [];
+    if (memberNodes.length === 0) {
+      return { ...grp, x: 0, y: 0, width: 0, height: 0 };
+    }
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    memberNodes.forEach((n) => {
+      minX = Math.min(minX, n.x);
+      minY = Math.min(minY, n.y);
+      maxX = Math.max(maxX, n.x + n.width);
+      maxY = Math.max(maxY, n.y + n.height);
+    });
+
+    const paddingX = 45;
+    const paddingTop = 60; // Extra space for layer group title header
+    const paddingBottom = 45;
+
+    return {
+      id: grp.id,
+      label: grp.label,
+      description: grp.description,
+      x: minX - paddingX,
+      y: minY - paddingTop,
+      width: maxX - minX + paddingX * 2,
+      height: maxY - minY + paddingTop + paddingBottom,
+    };
+  }).filter((g) => g.width > 0 && g.height > 0);
+
+  // Process ELK calculated orthogonal edge sections
   if (Array.isArray(layoutResult.edges)) {
     layoutResult.edges.forEach((edge) => {
       if (Array.isArray(edge.sections) && edge.sections.length > 0) {
@@ -191,10 +174,10 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
 function fallbackGridLayout(semanticDiagram) {
   const nodes = (semanticDiagram.nodes || []).map((n, i) => ({
     ...n,
-    x: 100 + (i % 3) * 280,
-    y: 200 + Math.floor(i / 3) * 200,
-    width: 220,
-    height: 90,
+    x: 100 + (i % 3) * 300,
+    y: 200 + Math.floor(i / 3) * 220,
+    width: 240,
+    height: 95,
   }));
 
   return {

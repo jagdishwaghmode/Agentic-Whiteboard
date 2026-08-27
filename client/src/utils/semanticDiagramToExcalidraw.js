@@ -1,6 +1,6 @@
 /**
  * Converts ELK-positioned semantic diagrams (with layer groups, nodes, and relationships)
- * into 100% native, individually editable Excalidraw elements.
+ * into 100% native, individually editable Excalidraw elements with orthogonal elbow-routed lines.
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -40,7 +40,7 @@ const createBaseElement = (type, overrides = {}) => ({
   opacity: 100,
   groupIds: [],
   frameId: null,
-  roundness: type === 'rectangle' ? { type: 3 } : null,
+  roundness: type === 'rectangle' ? { type: 3 } : type === 'arrow' ? { type: 2 } : null,
   seed: Math.floor(Math.random() * 100000),
   version: 1,
   versionNonce: Math.floor(Math.random() * 100000),
@@ -89,7 +89,7 @@ const getConnectionPoints = (fromNode, toNode) => {
     }
   }
 
-  return { startX, startY, endX, endY };
+  return { startX, startY, endX, endY, dx, dy };
 };
 
 export function semanticDiagramToExcalidraw(diagram) {
@@ -111,8 +111,6 @@ export function semanticDiagramToExcalidraw(diagram) {
   groups.forEach((grp) => {
     if (!grp.width || !grp.height) return;
 
-    const groupContainerId = generateId();
-
     const containerRect = createBaseElement('rectangle', {
       x: grp.x,
       y: grp.y,
@@ -128,9 +126,9 @@ export function semanticDiagramToExcalidraw(diagram) {
     });
 
     const headerText = createBaseElement('text', {
-      x: grp.x + 16,
-      y: grp.y + 12,
-      width: Math.max(grp.label.length * 10, 120),
+      x: grp.x + 18,
+      y: grp.y + 14,
+      width: Math.max(grp.label.length * 10, 140),
       height: 24,
       strokeColor: '#334155',
       backgroundColor: 'transparent',
@@ -168,8 +166,8 @@ export function semanticDiagramToExcalidraw(diagram) {
       groupIds: [groupId],
     });
 
-    const fontSize = 16;
-    const textWidth = Math.max(node.width - 20, 60);
+    const fontSize = 15;
+    const textWidth = Math.max(node.width - 24, 70);
     const textHeight = 24;
 
     const textElement = createBaseElement('text', {
@@ -185,7 +183,7 @@ export function semanticDiagramToExcalidraw(diagram) {
       fontFamily: 1, // Virgil hand-drawn
       textAlign: 'center',
       verticalAlign: 'middle',
-      baseline: 18,
+      baseline: 16,
       containerId: shapeElement.id,
       groupIds: [groupId],
       lineHeight: 1.25,
@@ -203,17 +201,45 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, node.y + node.height);
   });
 
-  // 3. Render Native Arrows & Connection Labels
+  // 3. Render Native Orthogonal Elbow Arrows & Connection Labels
   relationships.forEach((rel) => {
     const source = nodeMap.get(rel.from);
     const target = nodeMap.get(rel.to);
 
     if (!source || !target) return;
 
-    const { startX, startY, endX, endY } = getConnectionPoints(
+    const { startX, startY, endX, endY, dx, dy } = getConnectionPoints(
       source.nodeData,
       target.nodeData
     );
+
+    let points = [];
+
+    if (Array.isArray(rel.bendPoints) && rel.bendPoints.length >= 2) {
+      // Use ELK calculated orthogonal bend points
+      const relStartX = rel.bendPoints[0].x;
+      const relStartY = rel.bendPoints[0].y;
+      points = rel.bendPoints.map((bp) => [bp.x - relStartX, bp.y - relStartY]);
+    } else {
+      // 4-Point Orthogonal Elbow Fallback Path
+      if (Math.abs(dx) > Math.abs(dy)) {
+        const midX = dx / 2;
+        points = [
+          [0, 0],
+          [midX, 0],
+          [midX, dy],
+          [dx, dy],
+        ];
+      } else {
+        const midY = dy / 2;
+        points = [
+          [0, 0],
+          [0, midY],
+          [dx, midY],
+          [dx, dy],
+        ];
+      }
+    }
 
     const arrowElement = createBaseElement('arrow', {
       x: startX,
@@ -224,21 +250,18 @@ export function semanticDiagramToExcalidraw(diagram) {
       backgroundColor: 'transparent',
       startArrowhead: null,
       endArrowhead: 'arrow',
-      points: [
-        [0, 0],
-        [endX - startX, endY - startY],
-      ],
+      points,
+      roundness: null, // Keep section connectors straight and orthogonal
       startBinding: {
         elementId: source.shapeElement.id,
         focus: 0,
-        gap: 4,
+        gap: 6,
       },
       endBinding: {
         elementId: target.shapeElement.id,
         focus: 0,
-        gap: 4,
+        gap: 6,
       },
-      roundness: null,
     });
 
     source.shapeElement.boundElements.push({ id: arrowElement.id, type: 'arrow' });
@@ -250,23 +273,23 @@ export function semanticDiagramToExcalidraw(diagram) {
       const midX = startX + (endX - startX) / 2;
       const midY = startY + (endY - startY) / 2;
       const labelText = String(rel.label);
-      const labelWidth = Math.max(labelText.length * 9, 60);
+      const labelWidth = Math.max(labelText.length * 8, 60);
 
       const labelElement = createBaseElement('text', {
         x: midX - labelWidth / 2,
-        y: midY - 20,
+        y: midY - 18,
         width: labelWidth,
-        height: 20,
+        height: 18,
         strokeColor: '#334155',
         backgroundColor: '#ffffff',
         fillStyle: 'solid',
         text: labelText,
         originalText: labelText,
-        fontSize: 13,
+        fontSize: 12,
         fontFamily: 2,
         textAlign: 'center',
         verticalAlign: 'middle',
-        baseline: 13,
+        baseline: 12,
         lineHeight: 1.25,
         autoResize: true,
       });
@@ -278,18 +301,22 @@ export function semanticDiagramToExcalidraw(diagram) {
   const boundingBox =
     minX !== Infinity
       ? {
-        minX,
-        minY,
-        maxX,
-        maxY,
-        width: maxX - minX,
-        height: maxY - minY,
-        centerX: minX + (maxX - minX) / 2,
-        centerY: minY + (maxY - minY) / 2,
-      }
+          minX,
+          minY,
+          maxX,
+          maxY,
+          width: maxX - minX,
+          height: maxY - minY,
+          centerX: minX + (maxX - minX) / 2,
+          centerY: minY + (maxY - minY) / 2,
+        }
       : null;
 
-  return { elements, boundingBox };
+  // Put connector strokes behind blocks/text so a route never hides labels.
+  const arrows = elements.filter((e) => e.type === 'arrow');
+  const labels = elements.filter((e) => e.type === 'text' && !e.containerId && e.backgroundColor === '#ffffff');
+  const content = elements.filter((e) => !arrows.includes(e) && !labels.includes(e));
+  return { elements: [...arrows, ...content, ...labels], boundingBox };
 }
 
 export default semanticDiagramToExcalidraw;
