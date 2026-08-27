@@ -1,6 +1,6 @@
 /**
  * Converts ELK-positioned semantic diagrams (with layer groups, nodes, and relationships)
- * into 100% native, individually editable Excalidraw elements with orthogonal elbow-routed lines.
+ * into 100% native, individually editable Excalidraw elements with sharp, non-wavy orthogonal lines.
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
@@ -36,11 +36,11 @@ const createBaseElement = (type, overrides = {}) => ({
   fillStyle: 'solid',
   strokeWidth: 2,
   strokeStyle: 'solid',
-  roughness: 1,
+  roughness: 0, // Disable wavy hand-drawn lines for crisp straight lines
   opacity: 100,
   groupIds: [],
   frameId: null,
-  roundness: type === 'rectangle' ? { type: 3 } : type === 'arrow' ? { type: 2 } : null,
+  roundness: type === 'rectangle' ? { type: 3 } : null,
   seed: Math.floor(Math.random() * 100000),
   version: 1,
   versionNonce: Math.floor(Math.random() * 100000),
@@ -163,16 +163,17 @@ export function semanticDiagramToExcalidraw(diagram) {
       height: node.height,
       backgroundColor: config.bg,
       strokeColor: config.stroke,
+      roughness: 0, // Sharp crisp shape outline
       groupIds: [groupId],
     });
 
-    // Dynamic font size based on text length to prevent box text overflow
+    // Dynamic font size based on text length
     let fontSize = 14;
     if (label.length > 30) fontSize = 11;
     else if (label.length > 20) fontSize = 12;
     else if (label.length > 15) fontSize = 13;
 
-    const textWidth = Math.max(node.width - 20, 60);
+    const textWidth = Math.max(node.width - 24, 60);
     const textHeight = 24;
 
     const textElement = createBaseElement('text', {
@@ -185,7 +186,7 @@ export function semanticDiagramToExcalidraw(diagram) {
       text: label,
       originalText: label,
       fontSize,
-      fontFamily: 1, // Virgil hand-drawn
+      fontFamily: 1, // Virgil hand-drawn font
       textAlign: 'center',
       verticalAlign: 'middle',
       baseline: fontSize,
@@ -206,7 +207,7 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, node.y + node.height);
   });
 
-  // 3. Render Native Orthogonal Elbow Arrows & Connection Labels
+  // 3. Render Crisp Non-Wavy Orthogonal Arrow Lines & Labels
   relationships.forEach((rel) => {
     const source = nodeMap.get(rel.from);
     const target = nodeMap.get(rel.to);
@@ -221,12 +222,10 @@ export function semanticDiagramToExcalidraw(diagram) {
     let points = [];
 
     if (Array.isArray(rel.bendPoints) && rel.bendPoints.length >= 2) {
-      // Use ELK calculated orthogonal bend points
       const relStartX = rel.bendPoints[0].x;
       const relStartY = rel.bendPoints[0].y;
       points = rel.bendPoints.map((bp) => [bp.x - relStartX, bp.y - relStartY]);
     } else {
-      // Generate clean 4-point orthogonal step elbow path
       if (Math.abs(dx) > Math.abs(dy)) {
         const midX = dx / 2;
         points = [
@@ -251,21 +250,23 @@ export function semanticDiagramToExcalidraw(diagram) {
       y: startY,
       width: endX - startX,
       height: endY - startY,
-      strokeColor: '#475569',
+      strokeColor: '#334155',
       backgroundColor: 'transparent',
+      strokeWidth: 2,
+      roughness: 0, // 0 = 100% crisp straight line without wavy wobbles
+      roundness: null, // Sharp 90-degree right angle corners
       startArrowhead: null,
       endArrowhead: 'arrow',
       points,
-      roundness: { type: 2 }, // Elbow roundness
       startBinding: {
         elementId: source.shapeElement.id,
         focus: 0,
-        gap: 6,
+        gap: 8,
       },
       endBinding: {
         elementId: target.shapeElement.id,
         focus: 0,
-        gap: 6,
+        gap: 8,
       },
     });
 
@@ -274,20 +275,38 @@ export function semanticDiagramToExcalidraw(diagram) {
 
     elements.push(arrowElement);
 
-    if (rel.label) {
-      const midX = startX + (endX - startX) / 2;
-      const midY = startY + (endY - startY) / 2;
+    // Calculate longest segment along the orthogonal path to place the label cleanly
+    if (rel.label && points.length >= 2) {
+      let maxLen = -1;
+      let labelX = startX;
+      let labelY = startY;
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const p1 = points[i];
+        const p2 = points[i + 1];
+        const segDx = p2[0] - p1[0];
+        const segDy = p2[1] - p1[1];
+        const len = Math.sqrt(segDx * segDx + segDy * segDy);
+
+        if (len > maxLen) {
+          maxLen = len;
+          labelX = startX + p1[0] + segDx / 2;
+          labelY = startY + p1[1] + segDy / 2;
+        }
+      }
+
       const labelText = String(rel.label);
-      const labelWidth = Math.max(labelText.length * 8, 50);
+      const labelWidth = Math.max(labelText.length * 7.5, 55);
 
       const labelElement = createBaseElement('text', {
-        x: midX - labelWidth / 2,
-        y: midY - 14,
+        x: labelX - labelWidth / 2,
+        y: labelY - 10,
         width: labelWidth,
         height: 18,
         strokeColor: '#334155',
         backgroundColor: '#ffffff',
         fillStyle: 'solid',
+        roughness: 0,
         opacity: 100,
         text: labelText,
         originalText: labelText,
