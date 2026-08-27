@@ -3,8 +3,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 const elk = new ELK();
 
 /**
- * Uses ELK.js to calculate professional graph layout with orthogonal edge routing,
- * generous component spacing, and layer group containers.
+ * Uses ELK.js to calculate AWS-grade reference architecture graph layout with
+ * horizontal container flow (RIGHT), orthogonal edge routing, and clean component spacing.
  */
 export async function layoutSemanticDiagram(semanticDiagram) {
   if (!semanticDiagram || !Array.isArray(semanticDiagram.nodes)) {
@@ -13,14 +13,14 @@ export async function layoutSemanticDiagram(semanticDiagram) {
 
   const {
     title = 'Architecture Diagram',
-    direction = 'TOP_TO_BOTTOM',
+    direction = 'LEFT_TO_RIGHT',
     groups = [],
     nodes = [],
     relationships = [],
   } = semanticDiagram;
 
   const isFlowDiagram = ['flowchart', 'workflow', 'process-flow'].includes(semanticDiagram.diagramType);
-  const elkDirection = isFlowDiagram ? 'DOWN' : direction === 'LEFT_TO_RIGHT' ? 'RIGHT' : 'DOWN';
+  const elkDirection = isFlowDiagram ? 'DOWN' : 'RIGHT'; // Lays out layer containers horizontally like AWS Reference Diagrams
 
   const groupMap = new Map();
   groups.forEach((g) => {
@@ -33,10 +33,10 @@ export async function layoutSemanticDiagram(semanticDiagram) {
   });
 
   const nodeDimension = (type) => {
-    if (type === 'client' || type === 'gateway') return { width: 240, height: 100 };
-    if (type === 'database' || type === 'cache') return { width: 230, height: 100 };
-    if (type === 'diamond' || type === 'decision') return { width: 240, height: 110 };
-    return { width: 240, height: 100 };
+    if (type === 'client' || type === 'gateway') return { width: 220, height: 105 };
+    if (type === 'database' || type === 'cache') return { width: 210, height: 105 };
+    if (type === 'diamond' || type === 'decision') return { width: 220, height: 115 };
+    return { width: 220, height: 105 };
   };
 
   const rootChildren = [];
@@ -67,11 +67,11 @@ export async function layoutSemanticDiagram(semanticDiagram) {
         children: grp.children,
         layoutOptions: {
           'elk.algorithm': 'layered',
-          'elk.direction': elkDirection,
+          'elk.direction': 'DOWN', // Stack components inside each container box vertically
           'elk.edgeRouting': 'ORTHOGONAL',
-          'elk.spacing.nodeNode': '110',
+          'elk.spacing.nodeNode': '100',
           'elk.spacing.edgeNode': '65',
-          'elk.padding': '[top=80,left=60,bottom=60,right=60]',
+          'elk.padding': '[top=75,left=55,bottom=55,right=55]',
         },
       });
     }
@@ -89,11 +89,11 @@ export async function layoutSemanticDiagram(semanticDiagram) {
     id: 'root',
     layoutOptions: {
       'elk.algorithm': 'layered',
-      'elk.direction': elkDirection,
+      'elk.direction': elkDirection, // Lays out groups horizontally from Left to Right
       'elk.edgeRouting': 'ORTHOGONAL',
-      'elk.spacing.nodeNode': isFlowDiagram ? '120' : '145',
-      'elk.spacing.edgeNode': '80',
-      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '260',
+      'elk.spacing.nodeNode': isFlowDiagram ? '120' : '140',
+      'elk.spacing.edgeNode': '85',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '220',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
       'elk.padding': '[top=65,left=65,bottom=65,right=65]',
@@ -128,8 +128,8 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
           ...child.nodeData,
           x: absX,
           y: absY,
-          width: child.width || 240,
-          height: child.height || 100,
+          width: child.width || 220,
+          height: child.height || 105,
         });
       } else if (groupMap.has(child.id)) {
         const grp = groupMap.get(child.id);
@@ -193,8 +193,8 @@ function fallbackGridLayout(semanticDiagram) {
     ...n,
     x: 100 + (i % 3) * 300,
     y: 200 + Math.floor(i / 3) * 220,
-    width: 240,
-    height: 100,
+    width: 220,
+    height: 105,
   }));
 
   return {

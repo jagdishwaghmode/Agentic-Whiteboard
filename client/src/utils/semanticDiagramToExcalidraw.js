@@ -1,27 +1,39 @@
 /**
- * Converts ELK-positioned semantic diagrams (with layer groups, nodes, and relationships)
- * into 100% native, individually editable Excalidraw elements with sharp, non-wavy orthogonal lines.
+ * Converts ELK-positioned semantic diagrams into 100% native, individually editable
+ * Excalidraw AWS-grade reference architecture elements (with component icon badges,
+ * numbered step badges, pastel layer containers, and crisp 90-degree orthogonal lines).
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
+const CIRCLED_NUMBERS = ['❶', '❷', '❸', '❹', '❺', '❻', '❼', '❽', '❾', '❿', '⓫', '⓬', '⓭', '⓮', '⓯', '⓰', '⓱', '⓲', '⓳', '⓴'];
+
 const SHAPE_MAP = {
-  client: { shape: 'rectangle', bg: '#e7f5ff', stroke: '#1c7ed6' },
-  gateway: { shape: 'rectangle', bg: '#fff9db', stroke: '#f59f00' },
-  service: { shape: 'rectangle', bg: '#a5d8ff', stroke: '#1971c2' },
-  database: { shape: 'ellipse', bg: '#b2f2bb', stroke: '#2b8a3e' },
-  cache: { shape: 'ellipse', bg: '#d3f9d8', stroke: '#37b24d' },
-  'external-system': { shape: 'rectangle', bg: '#f1f3f5', stroke: '#495057' },
-  decision: { shape: 'diamond', bg: '#ffec99', stroke: '#e67700' },
-  start: { shape: 'ellipse', bg: '#d3f9d8', stroke: '#2b8a3e' },
-  end: { shape: 'ellipse', bg: '#ffe3e3', stroke: '#e03131' },
-  process: { shape: 'rectangle', bg: '#e7f5ff', stroke: '#1c7ed6' },
-  entity: { shape: 'rectangle', bg: '#f3d9fa', stroke: '#9c36b5' },
-  topic: { shape: 'ellipse', bg: '#fff3bf', stroke: '#e67700' },
-  input: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  output: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  queue: { shape: 'rectangle', bg: '#eebefa', stroke: '#ae3ec9' },
+  client: { shape: 'rectangle', bg: '#f0f9ff', stroke: '#0284c7', iconBg: '#bae6fd', icon: '🌐' },
+  gateway: { shape: 'rectangle', bg: '#fffbeb', stroke: '#d97706', iconBg: '#fde68a', icon: '🔌' },
+  service: { shape: 'rectangle', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#bfdbfe', icon: '⚡' },
+  database: { shape: 'ellipse', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#bbf7d0', icon: '🛢️' },
+  cache: { shape: 'ellipse', bg: '#ecfdf5', stroke: '#059669', iconBg: '#a7f3d0', icon: '⚡' },
+  'external-system': { shape: 'rectangle', bg: '#f8fafc', stroke: '#475569', iconBg: '#e2e8f0', icon: '☁️' },
+  decision: { shape: 'diamond', bg: '#fef9c3', stroke: '#ca8a04', iconBg: '#fef08a', icon: '❖' },
+  start: { shape: 'ellipse', bg: '#f0fdf4', stroke: '#16a34a', iconBg: '#bbf7d0', icon: '▶' },
+  end: { shape: 'ellipse', bg: '#fef2f2', stroke: '#dc2626', iconBg: '#fecaca', icon: '■' },
+  process: { shape: 'rectangle', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#bfdbfe', icon: '⚙️' },
+  entity: { shape: 'rectangle', bg: '#faf5ff', stroke: '#9333ea', iconBg: '#e9d5ff', icon: '📋' },
+  topic: { shape: 'ellipse', bg: '#fffbeb', stroke: '#d97706', iconBg: '#fde68a', icon: '💡' },
+  input: { shape: 'rectangle', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#bfdbfe', icon: '📥' },
+  output: { shape: 'rectangle', bg: '#eff6ff', stroke: '#2563eb', iconBg: '#bfdbfe', icon: '📤' },
+  queue: { shape: 'rectangle', bg: '#fae8ff', stroke: '#c026d3', iconBg: '#f5d0fe', icon: '📦' },
+  auth: { shape: 'rectangle', bg: '#f3e8ff', stroke: '#7e22ce', iconBg: '#e9d5ff', icon: '🛡️' },
 };
+
+const GROUP_PALETTES = [
+  { bg: '#fffbeb', stroke: '#f97316', labelColor: '#c2410c' }, // Frontend / Warm Amber
+  { bg: '#fff8f0', stroke: '#ea580c', labelColor: '#9a3412' }, // Backend / Warm Orange
+  { bg: '#f0fdf4', stroke: '#16a34a', labelColor: '#15803d' }, // Region / Mint Green
+  { bg: '#faf5ff', stroke: '#9333ea', labelColor: '#7e22ce' }, // Cloud Services / Purple
+  { bg: '#f0f9ff', stroke: '#0284c7', labelColor: '#0369a1' }, // Edge / Light Blue
+];
 
 const createBaseElement = (type, overrides = {}) => ({
   id: generateId(),
@@ -32,11 +44,11 @@ const createBaseElement = (type, overrides = {}) => ({
   height: 0,
   angle: 0,
   strokeColor: '#1e1e1e',
-  backgroundColor: '#a5d8ff',
+  backgroundColor: '#eff6ff',
   fillStyle: 'solid',
   strokeWidth: 2,
   strokeStyle: 'solid',
-  roughness: 0, // Disable wavy hand-drawn lines for crisp straight lines
+  roughness: 0, // 100% crisp straight non-wavy vector lines
   opacity: 100,
   groupIds: [],
   frameId: null,
@@ -107,35 +119,37 @@ export function semanticDiagramToExcalidraw(diagram) {
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  // 1. Render Group Container Rectangles & Labels
-  groups.forEach((grp) => {
+  // 1. Render Layer Group Container Rectangles & Labels with Pastel Backgrounds
+  groups.forEach((grp, idx) => {
     if (!grp.width || !grp.height) return;
+
+    const palette = GROUP_PALETTES[idx % GROUP_PALETTES.length];
 
     const containerRect = createBaseElement('rectangle', {
       x: grp.x,
       y: grp.y,
       width: grp.width,
       height: grp.height,
-      strokeColor: '#94a3b8',
-      backgroundColor: '#f8fafc',
+      strokeColor: palette.stroke,
+      backgroundColor: palette.bg,
       fillStyle: 'solid',
       strokeWidth: 2,
       strokeStyle: 'dashed',
       roughness: 0,
-      opacity: 70,
+      opacity: 85,
     });
 
     const headerText = createBaseElement('text', {
-      x: grp.x + 20,
-      y: grp.y + 14,
-      width: Math.max(grp.label.length * 10, 140),
+      x: grp.x + 24,
+      y: grp.y + 16,
+      width: Math.max(grp.label.length * 10, 160),
       height: 26,
-      strokeColor: '#334155',
+      strokeColor: palette.labelColor,
       backgroundColor: 'transparent',
       text: grp.label,
       originalText: grp.label,
       fontSize: 16,
-      fontFamily: 2,
+      fontFamily: 2, // Crisp Sans-Serif
       textAlign: 'left',
       verticalAlign: 'top',
       baseline: 16,
@@ -150,12 +164,13 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, grp.y + grp.height);
   });
 
-  // 2. Render Native Node Shapes and Bound Text Elements
-  nodes.forEach((node) => {
+  // 2. Render AWS-Grade Component Nodes (Outer Card + Icon Badge + Step Number + Label)
+  nodes.forEach((node, nodeIdx) => {
     const groupId = generateId();
     const config = SHAPE_MAP[node.type] || SHAPE_MAP.service;
     const label = String(node.label || 'Component');
 
+    // Node outer card container
     const shapeElement = createBaseElement(config.shape, {
       x: node.x,
       y: node.y,
@@ -163,32 +178,85 @@ export function semanticDiagramToExcalidraw(diagram) {
       height: node.height,
       backgroundColor: config.bg,
       strokeColor: config.stroke,
-      roughness: 0, // Sharp crisp shape outline
+      roughness: 0,
       groupIds: [groupId],
     });
 
-    // Dynamic font size based on text length
-    let fontSize = 14;
-    if (label.length > 30) fontSize = 11;
-    else if (label.length > 20) fontSize = 12;
-    else if (label.length > 15) fontSize = 13;
+    // Icon Badge Container Box (centered at top of node)
+    const badgeSize = 30;
+    const iconBadge = createBaseElement('rectangle', {
+      x: node.x + (node.width - badgeSize) / 2,
+      y: node.y + 10,
+      width: badgeSize,
+      height: badgeSize,
+      backgroundColor: config.iconBg,
+      strokeColor: config.stroke,
+      strokeWidth: 1.5,
+      roughness: 0,
+      roundness: { type: 3 },
+      groupIds: [groupId],
+    });
 
-    const textWidth = Math.max(node.width - 24, 60);
-    const textHeight = 24;
+    // Icon Symbol Text inside badge
+    const iconText = createBaseElement('text', {
+      x: node.x + (node.width - 24) / 2,
+      y: node.y + 15,
+      width: 24,
+      height: 20,
+      strokeColor: '#1e293b',
+      backgroundColor: 'transparent',
+      text: config.icon,
+      originalText: config.icon,
+      fontSize: 15,
+      fontFamily: 2,
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      baseline: 15,
+      groupIds: [groupId],
+      autoResize: true,
+    });
+
+    // Step Number Badge (e.g. ❶, ❷, ❸...) at top-left of node
+    const stepNumber = CIRCLED_NUMBERS[nodeIdx % CIRCLED_NUMBERS.length];
+    const stepBadge = createBaseElement('text', {
+      x: node.x + 8,
+      y: node.y + 8,
+      width: 20,
+      height: 20,
+      strokeColor: '#0f172a',
+      backgroundColor: 'transparent',
+      text: stepNumber,
+      originalText: stepNumber,
+      fontSize: 14,
+      fontFamily: 2,
+      textAlign: 'left',
+      verticalAlign: 'top',
+      baseline: 14,
+      groupIds: [groupId],
+      autoResize: true,
+    });
+
+    // Component Label below icon badge
+    let fontSize = 13;
+    if (label.length > 28) fontSize = 10.5;
+    else if (label.length > 18) fontSize = 11.5;
+
+    const textWidth = Math.max(node.width - 16, 60);
+    const textHeight = 36;
 
     const textElement = createBaseElement('text', {
       x: node.x + (node.width - textWidth) / 2,
-      y: node.y + (node.height - textHeight) / 2,
+      y: node.y + 48,
       width: textWidth,
       height: textHeight,
-      strokeColor: '#1e1e1e',
+      strokeColor: '#0f172a',
       backgroundColor: 'transparent',
       text: label,
       originalText: label,
       fontSize,
-      fontFamily: 1, // Virgil hand-drawn font
+      fontFamily: 2, // Clean modern sans-serif like Miro architecture
       textAlign: 'center',
-      verticalAlign: 'middle',
+      verticalAlign: 'top',
       baseline: fontSize,
       containerId: shapeElement.id,
       groupIds: [groupId],
@@ -198,7 +266,7 @@ export function semanticDiagramToExcalidraw(diagram) {
 
     shapeElement.boundElements = [{ id: textElement.id, type: 'text' }];
 
-    elements.push(shapeElement, textElement);
+    elements.push(shapeElement, iconBadge, iconText, stepBadge, textElement);
     nodeMap.set(node.id, { shapeElement, textElement, nodeData: node });
 
     minX = Math.min(minX, node.x);
@@ -208,7 +276,7 @@ export function semanticDiagramToExcalidraw(diagram) {
   });
 
   // 3. Render Crisp Non-Wavy Orthogonal Arrow Lines & Labels
-  relationships.forEach((rel) => {
+  relationships.forEach((rel, relIdx) => {
     const source = nodeMap.get(rel.from);
     const target = nodeMap.get(rel.to);
 
@@ -253,8 +321,8 @@ export function semanticDiagramToExcalidraw(diagram) {
       strokeColor: '#334155',
       backgroundColor: 'transparent',
       strokeWidth: 2,
-      roughness: 0, // 0 = 100% crisp straight line without wavy wobbles
-      roundness: null, // Sharp 90-degree right angle corners
+      roughness: 0,
+      roundness: null, // Crisp 90-degree corners
       startArrowhead: null,
       endArrowhead: 'arrow',
       points,
@@ -275,7 +343,7 @@ export function semanticDiagramToExcalidraw(diagram) {
 
     elements.push(arrowElement);
 
-    // Calculate longest segment along the orthogonal path to place the label cleanly
+    // Label Placement on Longest Clear Segment
     if (rel.label && points.length >= 2) {
       let maxLen = -1;
       let labelX = startX;
@@ -295,8 +363,9 @@ export function semanticDiagramToExcalidraw(diagram) {
         }
       }
 
-      const labelText = String(rel.label);
-      const labelWidth = Math.max(labelText.length * 7.5, 55);
+      const stepBadgeNum = CIRCLED_NUMBERS[relIdx % CIRCLED_NUMBERS.length];
+      const labelText = `${stepBadgeNum} ${rel.label}`;
+      const labelWidth = Math.max(labelText.length * 7.5, 60);
 
       const labelElement = createBaseElement('text', {
         x: labelX - labelWidth / 2,
