@@ -1,36 +1,59 @@
 /**
- * Converts ELK-positioned semantic diagrams into 100% native, individually editable Excalidraw elements.
- * Generates professional architecture diagrams with 100% clear, bold, centered text inside native container shapes.
+ * Converts ELK-positioned semantic diagrams (with layer groups, nodes, and relationships)
+ * into 100% native, individually editable Excalidraw elements with color-coded layer blocks
+ * and highlighted header badges (Miro / AWS style).
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
+// Distinct color theme palette per node category
 const SHAPE_MAP = {
-  client: { shape: 'rectangle', bg: '#e0f2fe', stroke: '#0284c7' },
-  gateway: { shape: 'rectangle', bg: '#fef3c7', stroke: '#d97706' },
-  service: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  database: { shape: 'ellipse', bg: '#dcfce7', stroke: '#16a34a' },
-  cache: { shape: 'ellipse', bg: '#ecfdf5', stroke: '#059669' },
-  'external-system': { shape: 'rectangle', bg: '#f1f5f9', stroke: '#475569' },
-  decision: { shape: 'diamond', bg: '#fef9c3', stroke: '#ca8a04' },
-  start: { shape: 'ellipse', bg: '#dcfce7', stroke: '#16a34a' },
-  end: { shape: 'ellipse', bg: '#fee2e2', stroke: '#dc2626' },
-  process: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  entity: { shape: 'rectangle', bg: '#f3e8ff', stroke: '#9333ea' },
-  topic: { shape: 'ellipse', bg: '#fef3c7', stroke: '#d97706' },
-  input: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  output: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
-  queue: { shape: 'rectangle', bg: '#fae8ff', stroke: '#c026d3' },
-  auth: { shape: 'rectangle', bg: '#fee2e2', stroke: '#dc2626' },
+  client: { shape: 'rectangle', bg: '#ffe8cc', stroke: '#d9480f' },
+  gateway: { shape: 'rectangle', bg: '#fff3bf', stroke: '#f59f00' },
+  service: { shape: 'rectangle', bg: '#d0ebff', stroke: '#1971c2' },
+  database: { shape: 'ellipse', bg: '#d3f9d8', stroke: '#2b8a3e' },
+  cache: { shape: 'ellipse', bg: '#e6fcf5', stroke: '#0ca678' },
+  'external-system': { shape: 'rectangle', bg: '#f1f3f5', stroke: '#495057' },
+  decision: { shape: 'diamond', bg: '#ffec99', stroke: '#e67700' },
+  start: { shape: 'ellipse', bg: '#d3f9d8', stroke: '#2b8a3e' },
+  end: { shape: 'ellipse', bg: '#ffe3e3', stroke: '#e03131' },
+  process: { shape: 'rectangle', bg: '#e7f5ff', stroke: '#1c7ed6' },
+  entity: { shape: 'rectangle', bg: '#f3d9fa', stroke: '#9c36b5' },
+  topic: { shape: 'ellipse', bg: '#fff3bf', stroke: '#e67700' },
+  input: { shape: 'rectangle', bg: '#ffe8cc', stroke: '#d9480f' },
+  output: { shape: 'rectangle', bg: '#d0ebff', stroke: '#1971c2' },
+  queue: { shape: 'rectangle', bg: '#f3d9fa', stroke: '#9c36b5' },
 };
 
+// Miro / AWS Style Layer Group Color Palettes
 const GROUP_PALETTES = [
-  { bg: '#fffbeb', stroke: '#f97316', labelColor: '#c2410c' }, // Frontend / Warm Amber
-  { bg: '#fff8f0', stroke: '#ea580c', labelColor: '#9a3412' }, // Backend / Warm Orange
-  { bg: '#f0fdf4', stroke: '#16a34a', labelColor: '#15803d' }, // Data / Mint Green
-  { bg: '#faf5ff', stroke: '#9333ea', labelColor: '#7e22ce' }, // Cloud / Purple
-  { bg: '#f0f9ff', stroke: '#0284c7', labelColor: '#0369a1' }, // Edge / Light Blue
+  { bg: '#fff4e6', stroke: '#f59f00', labelColor: '#d9480f', badgeBg: '#ffe8cc' }, // Orange (Frontend Layer)
+  { bg: '#fff9db', stroke: '#e67700', labelColor: '#b55800', badgeBg: '#fff3bf' }, // Amber (Backend / API Layer)
+  { bg: '#e7f5ff', stroke: '#1c7ed6', labelColor: '#1971c2', badgeBg: '#d0ebff' }, // Blue (Processing / Core Services)
+  { bg: '#ebfbee', stroke: '#37b24d', labelColor: '#2b8a3e', badgeBg: '#d3f9d8' }, // Green (Data / Storage Layer)
+  { bg: '#f3d9fa', stroke: '#ae3ec9', labelColor: '#9c36b5', badgeBg: '#eebefa' }, // Purple (AI / Intelligence Layer)
+  { bg: '#ffe3e3', stroke: '#f03e3e', labelColor: '#c92a2a', badgeBg: '#ffc9c9' }, // Red (Security / External Layer)
 ];
+
+function getGroupPalette(label = '', idx = 0) {
+  const l = (label || '').toLowerCase();
+  if (l.includes('front') || l.includes('client') || l.includes('ui') || l.includes('web') || l.includes('console')) {
+    return GROUP_PALETTES[0];
+  }
+  if (l.includes('api') || l.includes('backend') || l.includes('gateway') || l.includes('server')) {
+    return GROUP_PALETTES[1];
+  }
+  if (l.includes('core') || l.includes('process') || l.includes('service') || l.includes('module') || l.includes('engine')) {
+    return GROUP_PALETTES[2];
+  }
+  if (l.includes('data') || l.includes('storage') || l.includes('db') || l.includes('database') || l.includes('region')) {
+    return GROUP_PALETTES[3];
+  }
+  if (l.includes('ai') || l.includes('ml') || l.includes('model') || l.includes('assessment') || l.includes('intelligence')) {
+    return GROUP_PALETTES[4];
+  }
+  return GROUP_PALETTES[idx % GROUP_PALETTES.length];
+}
 
 const createBaseElement = (type, overrides = {}) => ({
   id: generateId(),
@@ -41,11 +64,11 @@ const createBaseElement = (type, overrides = {}) => ({
   height: 0,
   angle: 0,
   strokeColor: '#1e1e1e',
-  backgroundColor: '#dbeafe',
+  backgroundColor: '#a5d8ff',
   fillStyle: 'solid',
   strokeWidth: 2,
   strokeStyle: 'solid',
-  roughness: 0, // 100% crisp vector lines
+  roughness: 1,
   opacity: 100,
   groupIds: [],
   frameId: null,
@@ -98,7 +121,7 @@ const getConnectionPoints = (fromNode, toNode) => {
     }
   }
 
-  return { startX, startY, endX, endY, dx, dy };
+  return { startX, startY, endX, endY };
 };
 
 export function semanticDiagramToExcalidraw(diagram) {
@@ -116,13 +139,16 @@ export function semanticDiagramToExcalidraw(diagram) {
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  // 1. Render Layer Container Boxes with Soft Pastel Backgrounds & Dashed Borders
-  groups.forEach((grp, idx) => {
+  // 1. Render Color-Coded Group Container Rectangles & Highlighted Header Badges
+  groups.forEach((grp, grpIdx) => {
     if (!grp.width || !grp.height) return;
 
-    const palette = GROUP_PALETTES[idx % GROUP_PALETTES.length];
+    const palette = getGroupPalette(grp.label, grpIdx);
+    const groupContainerId = generateId();
 
+    // Group Outer Container Box with Color Tint & Dashed Border
     const containerRect = createBaseElement('rectangle', {
+      id: groupContainerId,
       x: grp.x,
       y: grp.y,
       width: grp.width,
@@ -136,24 +162,49 @@ export function semanticDiagramToExcalidraw(diagram) {
       opacity: 85,
     });
 
+    // Highlighted Header Label Pill/Badge (Miro AWS style)
+    const labelText = String(grp.label || 'Layer Block');
+    const badgeWidth = Math.max(labelText.length * 10, 140);
+    const badgeHeight = 28;
+
+    // Centered or Top-Left Header Badge Rectangle
+    const badgeRect = createBaseElement('rectangle', {
+      x: grp.x + (grp.width - badgeWidth) / 2,
+      y: grp.y + 12,
+      width: badgeWidth,
+      height: badgeHeight,
+      strokeColor: palette.stroke,
+      backgroundColor: palette.badgeBg,
+      fillStyle: 'solid',
+      strokeWidth: 1.5,
+      strokeStyle: 'solid',
+      roughness: 0,
+      opacity: 95,
+      roundness: { type: 3 },
+    });
+
     const headerText = createBaseElement('text', {
-      x: grp.x + 24,
-      y: grp.y + 16,
-      width: Math.max(grp.label.length * 10, 160),
-      height: 26,
+      x: badgeRect.x,
+      y: badgeRect.y + 4,
+      width: badgeWidth,
+      height: badgeHeight - 8,
       strokeColor: palette.labelColor,
       backgroundColor: 'transparent',
-      text: grp.label,
-      originalText: grp.label,
-      fontSize: 16,
-      fontFamily: 2, // Sans-serif font
-      textAlign: 'left',
-      verticalAlign: 'top',
-      baseline: 16,
+      text: labelText,
+      originalText: labelText,
+      fontSize: 14,
+      fontFamily: 2, // Sans-serif bold
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      baseline: 14,
+      containerId: badgeRect.id,
+      lineHeight: 1.2,
       autoResize: true,
     });
 
-    elements.push(containerRect, headerText);
+    badgeRect.boundElements = [{ id: headerText.id, type: 'text' }];
+
+    elements.push(containerRect, badgeRect, headerText);
 
     minX = Math.min(minX, grp.x);
     minY = Math.min(minY, grp.y);
@@ -161,17 +212,13 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, grp.y + grp.height);
   });
 
-  // 2. Render Native Node Containers with 100% Visible, Bold, Centered Text
+  // 2. Render Native Node Shapes with Color-Mapped Theme Styles
   nodes.forEach((node) => {
     const groupId = generateId();
     const config = SHAPE_MAP[node.type] || SHAPE_MAP.service;
-    const cleanLabel = String(node.label || 'Component').trim();
+    const label = String(node.label || 'Component');
 
-    const shapeType = node.type === 'database' || node.type === 'cache' ? 'ellipse'
-      : node.type === 'decision' ? 'diamond' : 'rectangle';
-
-    // Outer Shape Box
-    const shapeElement = createBaseElement(shapeType, {
+    const shapeElement = createBaseElement(config.shape, {
       x: node.x,
       y: node.y,
       width: node.width,
@@ -179,35 +226,27 @@ export function semanticDiagramToExcalidraw(diagram) {
       backgroundColor: config.bg,
       strokeColor: config.stroke,
       strokeWidth: 2,
-      roughness: 0,
-      roundness: shapeType === 'rectangle' ? { type: 3 } : null,
       groupIds: [groupId],
     });
 
-    // Dynamic Font Size for Clear Visibility
-    let fontSize = 14;
-    if (cleanLabel.length > 30) fontSize = 11;
-    else if (cleanLabel.length > 20) fontSize = 12.5;
+    const fontSize = 15;
+    const textWidth = Math.max(node.width - 20, 60);
+    const textHeight = 24;
 
-    const innerPadding = 16;
-    const textWidth = Math.max(node.width - innerPadding, 60);
-    const textHeight = Math.max(node.height - innerPadding, 30);
-
-    // Bound Text Element (Excalidraw natively centers this BOTH horizontally and vertically inside shapeElement!)
     const textElement = createBaseElement('text', {
-      x: node.x + innerPadding / 2,
-      y: node.y + innerPadding / 2,
+      x: node.x + (node.width - textWidth) / 2,
+      y: node.y + (node.height - textHeight) / 2,
       width: textWidth,
       height: textHeight,
-      strokeColor: '#0f172a',
+      strokeColor: '#1e1e1e',
       backgroundColor: 'transparent',
-      text: cleanLabel,
-      originalText: cleanLabel,
+      text: label,
+      originalText: label,
       fontSize,
-      fontFamily: 2, // Modern clean sans-serif font
+      fontFamily: 1, // Virgil hand-drawn
       textAlign: 'center',
       verticalAlign: 'middle',
-      baseline: fontSize,
+      baseline: 18,
       containerId: shapeElement.id,
       groupIds: [groupId],
       lineHeight: 1.25,
@@ -225,67 +264,42 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, node.y + node.height);
   });
 
-  // 3. Render Crisp Non-Wavy Orthogonal Vector Arrow Lines & Connection Badges
+  // 3. Render Native Arrow Connections & Relationship Labels
   relationships.forEach((rel) => {
     const source = nodeMap.get(rel.from);
     const target = nodeMap.get(rel.to);
 
     if (!source || !target) return;
 
-    const { startX, startY, endX, endY, dx, dy } = getConnectionPoints(
+    const { startX, startY, endX, endY } = getConnectionPoints(
       source.nodeData,
       target.nodeData
     );
-
-    let points = [];
-
-    if (Array.isArray(rel.bendPoints) && rel.bendPoints.length >= 2) {
-      const relStartX = rel.bendPoints[0].x;
-      const relStartY = rel.bendPoints[0].y;
-      points = rel.bendPoints.map((bp) => [bp.x - relStartX, bp.y - relStartY]);
-    } else {
-      if (Math.abs(dx) > Math.abs(dy)) {
-        const midX = dx / 2;
-        points = [
-          [0, 0],
-          [midX, 0],
-          [midX, dy],
-          [dx, dy],
-        ];
-      } else {
-        const midY = dy / 2;
-        points = [
-          [0, 0],
-          [0, midY],
-          [dx, midY],
-          [dx, dy],
-        ];
-      }
-    }
 
     const arrowElement = createBaseElement('arrow', {
       x: startX,
       y: startY,
       width: endX - startX,
       height: endY - startY,
-      strokeColor: '#334155',
+      strokeColor: '#475569',
       backgroundColor: 'transparent',
-      strokeWidth: 2,
-      roughness: 0,
-      roundness: null, // Crisp 90-degree corners
       startArrowhead: null,
       endArrowhead: 'arrow',
-      points,
+      points: [
+        [0, 0],
+        [endX - startX, endY - startY],
+      ],
       startBinding: {
         elementId: source.shapeElement.id,
         focus: 0,
-        gap: 8,
+        gap: 4,
       },
       endBinding: {
         elementId: target.shapeElement.id,
         focus: 0,
-        gap: 8,
+        gap: 4,
       },
+      roundness: null,
     });
 
     source.shapeElement.boundElements.push({ id: arrowElement.id, type: 'arrow' });
@@ -293,47 +307,28 @@ export function semanticDiagramToExcalidraw(diagram) {
 
     elements.push(arrowElement);
 
-    // Render clean relationship label in white pill badge on longest path segment
-    if (rel.label && points.length >= 2) {
-      let maxLen = -1;
-      let labelX = startX;
-      let labelY = startY;
-
-      for (let i = 0; i < points.length - 1; i++) {
-        const p1 = points[i];
-        const p2 = points[i + 1];
-        const segDx = p2[0] - p1[0];
-        const segDy = p2[1] - p1[1];
-        const len = Math.sqrt(segDx * segDx + segDy * segDy);
-
-        if (len > maxLen) {
-          maxLen = len;
-          labelX = startX + p1[0] + segDx / 2;
-          labelY = startY + p1[1] + segDy / 2;
-        }
-      }
-
+    if (rel.label) {
+      const midX = startX + (endX - startX) / 2;
+      const midY = startY + (endY - startY) / 2;
       const labelText = String(rel.label);
-      const labelWidth = Math.max(labelText.length * 7.5, 55);
+      const labelWidth = Math.max(labelText.length * 9, 60);
 
       const labelElement = createBaseElement('text', {
-        x: labelX - labelWidth / 2,
-        y: labelY - 10,
+        x: midX - labelWidth / 2,
+        y: midY - 20,
         width: labelWidth,
-        height: 18,
+        height: 20,
         strokeColor: '#334155',
         backgroundColor: '#ffffff',
         fillStyle: 'solid',
-        roughness: 0,
-        opacity: 100,
         text: labelText,
         originalText: labelText,
-        fontSize: 11,
+        fontSize: 13,
         fontFamily: 2,
         textAlign: 'center',
         verticalAlign: 'middle',
-        baseline: 11,
-        lineHeight: 1.2,
+        baseline: 13,
+        lineHeight: 1.25,
         autoResize: true,
       });
 

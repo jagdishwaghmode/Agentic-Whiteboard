@@ -3,8 +3,8 @@ import ELK from 'elkjs/lib/elk.bundled.js';
 const elk = new ELK();
 
 /**
- * Uses ELK.js to calculate AWS-grade reference architecture graph layout with
- * horizontal container flow (RIGHT), orthogonal edge routing, and clean component spacing.
+ * Uses ELK.js to calculate professional graph layout with orthogonal edge routing,
+ * generous component spacing, and layer group containers.
  */
 export async function layoutSemanticDiagram(semanticDiagram) {
   if (!semanticDiagram || !Array.isArray(semanticDiagram.nodes)) {
@@ -13,14 +13,14 @@ export async function layoutSemanticDiagram(semanticDiagram) {
 
   const {
     title = 'Architecture Diagram',
-    direction = 'LEFT_TO_RIGHT',
+    direction = 'TOP_TO_BOTTOM',
     groups = [],
     nodes = [],
     relationships = [],
   } = semanticDiagram;
 
   const isFlowDiagram = ['flowchart', 'workflow', 'process-flow'].includes(semanticDiagram.diagramType);
-  const elkDirection = isFlowDiagram ? 'DOWN' : 'RIGHT'; // Lays out layer containers horizontally like AWS Reference Diagrams
+  const elkDirection = isFlowDiagram ? 'DOWN' : direction === 'LEFT_TO_RIGHT' ? 'RIGHT' : 'DOWN';
 
   const groupMap = new Map();
   groups.forEach((g) => {
@@ -33,10 +33,10 @@ export async function layoutSemanticDiagram(semanticDiagram) {
   });
 
   const nodeDimension = (type) => {
-    if (type === 'client' || type === 'gateway') return { width: 220, height: 105 };
-    if (type === 'database' || type === 'cache') return { width: 210, height: 105 };
-    if (type === 'diamond' || type === 'decision') return { width: 220, height: 115 };
-    return { width: 220, height: 105 };
+    if (type === 'client' || type === 'gateway') return { width: 230, height: 95 };
+    if (type === 'database' || type === 'cache') return { width: 220, height: 95 };
+    if (type === 'diamond' || type === 'decision') return { width: 230, height: 105 };
+    return { width: 230, height: 95 };
   };
 
   const rootChildren = [];
@@ -67,9 +67,9 @@ export async function layoutSemanticDiagram(semanticDiagram) {
         children: grp.children,
         layoutOptions: {
           'elk.algorithm': 'layered',
-          'elk.direction': 'DOWN', // Stack components inside each container box vertically
+          'elk.direction': elkDirection,
           'elk.edgeRouting': 'ORTHOGONAL',
-          'elk.spacing.nodeNode': '100',
+          'elk.spacing.nodeNode': '110',
           'elk.spacing.edgeNode': '65',
           'elk.padding': '[top=75,left=55,bottom=55,right=55]',
         },
@@ -89,14 +89,14 @@ export async function layoutSemanticDiagram(semanticDiagram) {
     id: 'root',
     layoutOptions: {
       'elk.algorithm': 'layered',
-      'elk.direction': elkDirection, // Lays out groups horizontally from Left to Right
+      'elk.direction': elkDirection,
       'elk.edgeRouting': 'ORTHOGONAL',
       'elk.spacing.nodeNode': isFlowDiagram ? '120' : '140',
-      'elk.spacing.edgeNode': '85',
-      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '220',
+      'elk.spacing.edgeNode': '75',
+      'elk.layered.spacing.nodeNodeBetweenLayers': isFlowDiagram ? '180' : '250',
       'elk.layered.crossingMinimization.strategy': 'LAYER_SWEEP',
       'elk.layered.nodePlacement.strategy': 'BRANDES_KOEPF',
-      'elk.padding': '[top=65,left=65,bottom=65,right=65]',
+      'elk.padding': '[top=60,left=60,bottom=60,right=60]',
     },
     children: rootChildren,
     edges: elkEdges,
@@ -128,8 +128,8 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
           ...child.nodeData,
           x: absX,
           y: absY,
-          width: child.width || 220,
-          height: child.height || 105,
+          width: child.width || 200,
+          height: child.height || 85,
         });
       } else if (groupMap.has(child.id)) {
         const grp = groupMap.get(child.id);
@@ -139,8 +139,8 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
           description: grp.description,
           x: absX,
           y: absY,
-          width: child.width || 420,
-          height: child.height || 260,
+          width: child.width || 400,
+          height: child.height || 250,
         });
 
         if (child.children) {
@@ -191,10 +191,10 @@ function processElkResult(layoutResult, semanticDiagram, groupMap) {
 function fallbackGridLayout(semanticDiagram) {
   const nodes = (semanticDiagram.nodes || []).map((n, i) => ({
     ...n,
-    x: 100 + (i % 3) * 300,
-    y: 200 + Math.floor(i / 3) * 220,
+    x: 100 + (i % 3) * 280,
+    y: 200 + Math.floor(i / 3) * 200,
     width: 220,
-    height: 105,
+    height: 90,
   }));
 
   return {
