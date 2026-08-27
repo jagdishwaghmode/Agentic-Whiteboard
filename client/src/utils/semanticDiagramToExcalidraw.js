@@ -122,20 +122,20 @@ export function semanticDiagramToExcalidraw(diagram) {
       strokeWidth: 2,
       strokeStyle: 'dashed',
       roughness: 0,
-      opacity: 80,
+      opacity: 70,
     });
 
     const headerText = createBaseElement('text', {
-      x: grp.x + 18,
+      x: grp.x + 20,
       y: grp.y + 14,
       width: Math.max(grp.label.length * 10, 140),
-      height: 24,
+      height: 26,
       strokeColor: '#334155',
       backgroundColor: 'transparent',
       text: grp.label,
       originalText: grp.label,
       fontSize: 16,
-      fontFamily: 2, // Sans-serif
+      fontFamily: 2,
       textAlign: 'left',
       verticalAlign: 'top',
       baseline: 16,
@@ -166,8 +166,13 @@ export function semanticDiagramToExcalidraw(diagram) {
       groupIds: [groupId],
     });
 
-    const fontSize = 15;
-    const textWidth = Math.max(node.width - 24, 70);
+    // Dynamic font size based on text length to prevent box text overflow
+    let fontSize = 14;
+    if (label.length > 30) fontSize = 11;
+    else if (label.length > 20) fontSize = 12;
+    else if (label.length > 15) fontSize = 13;
+
+    const textWidth = Math.max(node.width - 20, 60);
     const textHeight = 24;
 
     const textElement = createBaseElement('text', {
@@ -183,10 +188,10 @@ export function semanticDiagramToExcalidraw(diagram) {
       fontFamily: 1, // Virgil hand-drawn
       textAlign: 'center',
       verticalAlign: 'middle',
-      baseline: 16,
+      baseline: fontSize,
       containerId: shapeElement.id,
       groupIds: [groupId],
-      lineHeight: 1.25,
+      lineHeight: 1.2,
       autoResize: true,
     });
 
@@ -221,7 +226,7 @@ export function semanticDiagramToExcalidraw(diagram) {
       const relStartY = rel.bendPoints[0].y;
       points = rel.bendPoints.map((bp) => [bp.x - relStartX, bp.y - relStartY]);
     } else {
-      // 4-Point Orthogonal Elbow Fallback Path
+      // Generate clean 4-point orthogonal step elbow path
       if (Math.abs(dx) > Math.abs(dy)) {
         const midX = dx / 2;
         points = [
@@ -251,7 +256,7 @@ export function semanticDiagramToExcalidraw(diagram) {
       startArrowhead: null,
       endArrowhead: 'arrow',
       points,
-      roundness: null, // Keep section connectors straight and orthogonal
+      roundness: { type: 2 }, // Elbow roundness
       startBinding: {
         elementId: source.shapeElement.id,
         focus: 0,
@@ -273,24 +278,25 @@ export function semanticDiagramToExcalidraw(diagram) {
       const midX = startX + (endX - startX) / 2;
       const midY = startY + (endY - startY) / 2;
       const labelText = String(rel.label);
-      const labelWidth = Math.max(labelText.length * 8, 60);
+      const labelWidth = Math.max(labelText.length * 8, 50);
 
       const labelElement = createBaseElement('text', {
         x: midX - labelWidth / 2,
-        y: midY - 18,
+        y: midY - 14,
         width: labelWidth,
         height: 18,
         strokeColor: '#334155',
         backgroundColor: '#ffffff',
         fillStyle: 'solid',
+        opacity: 100,
         text: labelText,
         originalText: labelText,
-        fontSize: 12,
+        fontSize: 11,
         fontFamily: 2,
         textAlign: 'center',
         verticalAlign: 'middle',
-        baseline: 12,
-        lineHeight: 1.25,
+        baseline: 11,
+        lineHeight: 1.2,
         autoResize: true,
       });
 
@@ -312,11 +318,7 @@ export function semanticDiagramToExcalidraw(diagram) {
         }
       : null;
 
-  // Put connector strokes behind blocks/text so a route never hides labels.
-  const arrows = elements.filter((e) => e.type === 'arrow');
-  const labels = elements.filter((e) => e.type === 'text' && !e.containerId && e.backgroundColor === '#ffffff');
-  const content = elements.filter((e) => !arrows.includes(e) && !labels.includes(e));
-  return { elements: [...arrows, ...content, ...labels], boundingBox };
+  return { elements, boundingBox };
 }
 
 export default semanticDiagramToExcalidraw;
