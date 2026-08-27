@@ -1,37 +1,27 @@
 /**
  * Converts ELK-positioned semantic diagrams into 100% native, individually editable Excalidraw elements.
- * Renders professional architecture diagrams with perfectly centered icon + label text inside native container boxes.
+ * Generates professional architecture diagrams with 100% clear, bold, centered text inside native container shapes.
  */
 
 const generateId = () => `elem_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
 
-const COMPONENT_PALETTES = {
-  client: { icon: '🌐', bg: '#e0f2fe', stroke: '#0284c7' },
-  user: { icon: '👤', bg: '#e0f2fe', stroke: '#0284c7' },
-  users: { icon: '👥', bg: '#e0f2fe', stroke: '#0284c7' },
-  device: { icon: '📱', bg: '#e0f2fe', stroke: '#0284c7' },
-  gateway: { icon: '🔌', bg: '#fef3c7', stroke: '#d97706' },
-  vpc: { icon: '🛡️', bg: '#fef3c7', stroke: '#d97706' },
-  service: { icon: '⚡', bg: '#dbeafe', stroke: '#2563eb' },
-  lambda: { icon: '⚡', bg: '#ffedd5', stroke: '#ea580c' },
-  docker: { icon: '🐳', bg: '#dbeafe', stroke: '#2563eb' },
-  server: { icon: '🖥️', bg: '#dbeafe', stroke: '#2563eb' },
-  database: { icon: '🛢️', bg: '#dcfce7', stroke: '#16a34a' },
-  s3: { icon: '🛢️', bg: '#dcfce7', stroke: '#16a34a' },
-  cache: { icon: '⚡', bg: '#ecfdf5', stroke: '#059669' },
-  email: { icon: '📧', bg: '#fce7f3', stroke: '#db2777' },
-  slack: { icon: '💬', bg: '#fce7f3', stroke: '#db2777' },
-  queue: { icon: '📦', bg: '#fae8ff', stroke: '#c026d3' },
-  auth: { icon: '🔒', bg: '#fee2e2', stroke: '#dc2626' },
-  ai: { icon: '✨', bg: '#f3e8ff', stroke: '#9333ea' },
-  analytics: { icon: '📊', bg: '#fdf2f8', stroke: '#db2777' },
-  'external-system': { icon: '☁️', bg: '#f1f5f9', stroke: '#475569' },
-  decision: { icon: '❖', bg: '#fef9c3', stroke: '#ca8a04' },
-  start: { icon: '▶', bg: '#dcfce7', stroke: '#16a34a' },
-  end: { icon: '■', bg: '#fee2e2', stroke: '#dc2626' },
-  process: { icon: '⚙️', bg: '#dbeafe', stroke: '#2563eb' },
-  entity: { icon: '📋', bg: '#f3e8ff', stroke: '#9333ea' },
-  topic: { icon: '💡', bg: '#fef3c7', stroke: '#d97706' },
+const SHAPE_MAP = {
+  client: { shape: 'rectangle', bg: '#e0f2fe', stroke: '#0284c7' },
+  gateway: { shape: 'rectangle', bg: '#fef3c7', stroke: '#d97706' },
+  service: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
+  database: { shape: 'ellipse', bg: '#dcfce7', stroke: '#16a34a' },
+  cache: { shape: 'ellipse', bg: '#ecfdf5', stroke: '#059669' },
+  'external-system': { shape: 'rectangle', bg: '#f1f5f9', stroke: '#475569' },
+  decision: { shape: 'diamond', bg: '#fef9c3', stroke: '#ca8a04' },
+  start: { shape: 'ellipse', bg: '#dcfce7', stroke: '#16a34a' },
+  end: { shape: 'ellipse', bg: '#fee2e2', stroke: '#dc2626' },
+  process: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
+  entity: { shape: 'rectangle', bg: '#f3e8ff', stroke: '#9333ea' },
+  topic: { shape: 'ellipse', bg: '#fef3c7', stroke: '#d97706' },
+  input: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
+  output: { shape: 'rectangle', bg: '#dbeafe', stroke: '#2563eb' },
+  queue: { shape: 'rectangle', bg: '#fae8ff', stroke: '#c026d3' },
+  auth: { shape: 'rectangle', bg: '#fee2e2', stroke: '#dc2626' },
 };
 
 const GROUP_PALETTES = [
@@ -126,7 +116,7 @@ export function semanticDiagramToExcalidraw(diagram) {
   let maxX = -Infinity;
   let maxY = -Infinity;
 
-  // 1. Render Layer Container Boxes with Pastel Backgrounds & Clean Dashed Outlines
+  // 1. Render Layer Container Boxes with Soft Pastel Backgrounds & Dashed Borders
   groups.forEach((grp, idx) => {
     if (!grp.width || !grp.height) return;
 
@@ -171,14 +161,11 @@ export function semanticDiagramToExcalidraw(diagram) {
     maxY = Math.max(maxY, grp.y + grp.height);
   });
 
-  // 2. Render Native Node Boxes with Perfectly Centered Icon + Label Text (ZERO Overlap!)
+  // 2. Render Native Node Containers with 100% Visible, Bold, Centered Text
   nodes.forEach((node) => {
     const groupId = generateId();
-    const config = COMPONENT_PALETTES[node.type] || COMPONENT_PALETTES.service;
+    const config = SHAPE_MAP[node.type] || SHAPE_MAP.service;
     const cleanLabel = String(node.label || 'Component').trim();
-
-    // Format text string with icon and title: e.g. "⚡  Node.js Express Server"
-    const fullText = `${config.icon}  ${cleanLabel}`;
 
     const shapeType = node.type === 'database' || node.type === 'cache' ? 'ellipse'
       : node.type === 'decision' ? 'diamond' : 'rectangle';
@@ -197,16 +184,16 @@ export function semanticDiagramToExcalidraw(diagram) {
       groupIds: [groupId],
     });
 
-    // Dynamic Font Size
-    let fontSize = 13.5;
-    if (fullText.length > 32) fontSize = 11;
-    else if (fullText.length > 22) fontSize = 12;
+    // Dynamic Font Size for Clear Visibility
+    let fontSize = 14;
+    if (cleanLabel.length > 30) fontSize = 11;
+    else if (cleanLabel.length > 20) fontSize = 12.5;
 
-    const innerPadding = 20;
+    const innerPadding = 16;
     const textWidth = Math.max(node.width - innerPadding, 60);
     const textHeight = Math.max(node.height - innerPadding, 30);
 
-    // Native Bound Text Element (Excalidraw automatically centers this BOTH horizontally and vertically!)
+    // Bound Text Element (Excalidraw natively centers this BOTH horizontally and vertically inside shapeElement!)
     const textElement = createBaseElement('text', {
       x: node.x + innerPadding / 2,
       y: node.y + innerPadding / 2,
@@ -214,8 +201,8 @@ export function semanticDiagramToExcalidraw(diagram) {
       height: textHeight,
       strokeColor: '#0f172a',
       backgroundColor: 'transparent',
-      text: fullText,
-      originalText: fullText,
+      text: cleanLabel,
+      originalText: cleanLabel,
       fontSize,
       fontFamily: 2, // Modern clean sans-serif font
       textAlign: 'center',
