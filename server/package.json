@@ -1,0 +1,18 @@
+{
+  "name": "ai-agentic-whiteboard-server",
+  "version": "1.0.0",
+  "description": "Backend API for AI Agentic Whiteboard",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch server.js",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "firebase-admin": "^13.0.2",
+    "mongoose": "^8.9.5"
+  }
+}
