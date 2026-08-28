@@ -16,6 +16,34 @@ An intelligent full-stack collaborative whiteboard application that converts nat
 
 ---
 
+## System Architecture & AI Generation Flowchart
+
+The diagram generation pipeline processes user natural-language requests through a multi-agent AI pipeline and layout engine to output native Excalidraw diagrams:
+
+![AI Agentic Whiteboard System Architecture Flowchart](./flowchart/00A_WhiteBoardFlowchart.png)
+
+### High-Level Execution Pipeline
+
+```text
+User Natural Language Prompt (AIChat.jsx)
+           ↓
+POST /api/ai/generate-professional-diagram
+           ↓
+geminiService.js (Central Google Gemini Service)
+  ├─ 1. analyzeDiagramIntent()  -> Gemini AI (Intent Agent)
+  ├─ 2. planDiagram()           -> Gemini AI (Planner Agent - 0 Hardcoded Coords)
+  ├─ 3. validateSemanticDiagram()-> Structure Validation & ID Integrity Checks
+  └─ 4. reviewDiagram()         -> Gemini AI (Reviewer Agent Validation Loop)
+           ↓
+Client Graph Layout Engine (diagramLayoutService.js via ELK.js)
+           ↓
+Excalidraw Native Element Generator (semanticDiagramToExcalidraw.js)
+           ↓
+Fully Editable Native Canvas Diagram (WhiteboardCanvas.jsx)
+```
+
+---
+
 ## Tech Stack
 
 | Layer | Technologies |
@@ -25,28 +53,6 @@ An intelligent full-stack collaborative whiteboard application that converts nat
 | **Authentication** | Firebase Auth, Firebase Admin SDK |
 | **AI Model Engine** | Google Gemini API (`gemini-2.5-flash` / `gemini-1.5-flash`) |
 | **Payments** | Razorpay Checkout SDK |
-
----
-
-## System Architecture
-
-```text
-User Natural Language Prompt (AIChat.jsx)
-           ↓
-POST /api/ai/generate-professional-diagram
-           ↓
-geminiService.js (Central Google Gemini Service)
-  ├─ 1. analyzeDiagramIntent()  -> Gemini AI (Intent Prompt)
-  ├─ 2. planDiagram()           -> Gemini AI (Planner Prompt - 0 Hardcoded Coords)
-  ├─ 3. validateSemanticDiagram()-> Structure Validation & ID Integrity Checks
-  └─ 4. reviewDiagram()         -> Gemini AI (Reviewer Prompt)
-           ↓
-Client Graph Layout Engine (diagramLayoutService.js via ELK.js)
-           ↓
-Excalidraw Native Element Generator (semanticDiagramToExcalidraw.js)
-           ↓
-Fully Editable Native Canvas Diagram (WhiteboardCanvas.jsx)
-```
 
 ---
 
@@ -73,6 +79,8 @@ Agentic-Whiteboard/
 │   │   └── utils/             # Semantic Diagram -> Excalidraw Element Converter
 │   ├── .env.example
 │   └── package.json
+├── flowchart/                  # System Architecture & Flowchart Diagrams
+│   └── 00A_WhiteBoardFlowchart.png
 ├── server/                     # Node.js + Express API Backend
 │   ├── agents/                # Gemini Intent, Planner, Reviewer Agents
 │   ├── config/                # Gemini, Firebase, Razorpay, MongoDB configs
