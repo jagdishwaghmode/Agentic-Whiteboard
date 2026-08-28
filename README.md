@@ -1,6 +1,6 @@
 # AI Agentic Whiteboard
 
-An intelligent full-stack collaborative whiteboard application that converts natural language prompts into **100% native, individually editable Excalidraw diagrams** using a multi-agent **Google Gemini AI** pipeline and **ELK.js** graph layout engine.
+An intelligent full-stack collaborative whiteboard application that converts natural language prompts into **100% native, individually editable Excalidraw diagrams** using a multi-agent **Google Gemini AI** pipeline and **ELK.js** graph layout engine
 
 ---
 
