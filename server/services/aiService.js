@@ -39,34 +39,31 @@ export const generateDiagram = async (prompt, context = null) => {
 };
 
 export const generateMermaidCode = async (prompt) => {
-  const { apiKey, model } = getGeminiConfig();
-  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const { apiKey, model = 'gemini-3.6-flash' } = getGeminiConfig();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      messages: [
-        { role: 'system', content: MERMAID_SYSTEM_PROMPT },
-        { role: 'user', content: prompt },
+      contents: [
+        {
+          parts: [{ text: `${MERMAID_SYSTEM_PROMPT}\n\nUser Request: ${prompt}` }],
+        },
       ],
-      model,
-      temperature: 0.2,
+      generationConfig: {
+        temperature: 0.2,
+      },
     }),
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-      'HTTP-Referer': 'http://localhost:5173',
-      'X-Title': 'AI Agentic Whiteboard',
-    },
   });
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new Error(`OpenRouter API Error (${response.status}): ${errorText}`);
+    throw new Error(`Google Gemini API Error (${response.status}): ${errorText}`);
   }
 
   const data = await response.json();
-  const text = data.choices?.[0]?.message?.content;
+  const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   return text ? text.replace(/```mermaid\s*/gi, '').replace(/```\s*/g, '').trim() : '';
 };
 
